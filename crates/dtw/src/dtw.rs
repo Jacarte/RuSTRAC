@@ -21,10 +21,10 @@ pub trait DTW {
     fn calculate(&self, chain1: Box<dyn Accesor>, chain2: Box<dyn Accesor>) -> f64;
 }
 
-struct StandardDTW<'a> {
+pub struct StandardDTW<'a> {
     pub distance: &'a dyn Distance,
 }
-struct STRACDistance;
+pub struct STRACDistance;
 
 impl Distance for STRACDistance {
     fn distance(&self, a: TokenID, b: TokenID) -> f64 {
@@ -41,7 +41,7 @@ impl Distance for STRACDistance {
 }
 
 impl<'a> StandardDTW<'a> {
-    fn new(distance: &'a dyn Distance) -> StandardDTW {
+    pub fn new(distance: &'a dyn Distance) -> StandardDTW {
         StandardDTW { distance }
     }
 }
