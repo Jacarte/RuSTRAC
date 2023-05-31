@@ -69,7 +69,7 @@ macro_rules! subcommands {
 
 subcommands! {
     (dtw, "dtw")
-    // (memodtw, "memodtw")
+    (memodtw, "memodtw")
 }
 
 fn main() {
@@ -109,12 +109,11 @@ fn main() {
     let distance = dtw_core::dtw::STRACDistance::new(
         args.io().gap_cost.or(Some(1.0)).unwrap(),
         args.io().missmatch_cost.or(Some(3.0)).unwrap(),
-        0.0
-        );
+        0.0,
+    );
     let distance = Box::new(distance);
 
     let distance = args.run(Box::new(r1), Box::new(r2), distance);
 
     println!("{}", distance);
 }
-
