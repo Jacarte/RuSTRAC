@@ -199,6 +199,9 @@ impl DTW for FixedDTW<'_> {
             }
         }
 
+        let mut progre = 0;
+
+        eprintln!();
         for i in 1..=chain2.size() {
             let mut curr_row = vec![0.0; chain1.size() + 1];
             // TODO Check if the following actually helps
@@ -216,6 +219,14 @@ impl DTW for FixedDTW<'_> {
                     .min(prev_row[j - 1]);
 
                 unsafe { curr_row[j] = cost + min };
+                progre += 1;
+
+                eprint!(
+                    "\r{}/{}({})",
+                    progre,
+                    chain1.size() * chain2.size(),
+                    100.0 * (progre as f64 / (chain1.size() * chain2.size()) as f64)
+                );
             }
 
             // Copy the memory
