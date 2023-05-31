@@ -1,4 +1,4 @@
 target
 
 # trace files
-test.bin
+*.trace.bin

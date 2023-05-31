@@ -98,30 +98,69 @@ impl<'a> TraceEncoder<'a> for ToMemoryParser {
     }
 
     fn deserialize(&self, from: PathBuf) -> Box<dyn Accesor> {
-        let f = std::fs::File::open(from).expect("File coudl not be opened");
+        // Use rustix to mmap file
+        if cfg!(unix) {
+            let file = std::fs::File::open(from).expect("failed to open file");
+            let len = file.metadata().expect("failed to get file metadata").len();
 
-        let mut br = std::io::BufReader::new(f);
-        // Read the header
-        // First 4 bytes the header 'dtw\0'
-        // Read as bytes
-        let header: [u8; 4] = {
-            let mut r = [0; 4];
-            br.read_exact(&mut r).unwrap();
-            r
-        };
-        assert_eq!(&header, b"dtw\0");
-        let version = br.read_u32::<BigEndian>().unwrap();
-        assert_eq!(version, 0x00000001);
+            let len = usize::try_from(len).expect("file too large to map");
+            let ptr = unsafe {
+                rustix::mm::mmap(
+                    std::ptr::null_mut(),
+                    len,
+                    rustix::mm::ProtFlags::READ | rustix::mm::ProtFlags::WRITE,
+                    rustix::mm::MapFlags::PRIVATE,
+                    &file,
+                    0,
+                )
+                .expect(&format!("mmap failed to allocate {:#x} bytes", len))
+            };
 
-        let count = br.read_u32::<LittleEndian>().unwrap();
-        let mut r = vec![];
+            let ptr = ptr as *mut u8;
 
-        // 8 bytes per ID...that is too much :|
-        for _ in 0..count {
-            r.push(br.read_u64::<LittleEndian>().unwrap() as TokenID);
+            let header = unsafe { std::slice::from_raw_parts(ptr, 4) };
+            assert_eq!(&header, b"dtw\0");
+            let version = unsafe { std::slice::from_raw_parts(ptr.add(4), 4) };
+            assert_eq!(version, &[0x00, 0x00, 0x00, 0x01]);
+
+            let count = unsafe { std::slice::from_raw_parts(ptr.add(8), 4) };
+            let count = u32::from_le_bytes([count[0], count[1], count[2], count[3]]);
+
+            use crate::mmap::*;
+            let wrapper = MMapWrapper {
+                size: count as usize,
+                ptr: std::sync::Arc::new(std::sync::Mutex::new(unsafe { ptr })),
+            };
+
+            Box::new(wrapper)
+        } else {
+            // Wasm32 probably
+            // Windows also
+            let f = std::fs::File::open(from).expect("File could not be opened");
+
+            let mut br = std::io::BufReader::new(f);
+            // Read the header
+            // First 4 bytes the header 'dtw\0'
+            // Read as bytes
+            let header: [u8; 4] = {
+                let mut r = [0; 4];
+                br.read_exact(&mut r).unwrap();
+                r
+            };
+            assert_eq!(&header, b"dtw\0");
+            let version = br.read_u32::<BigEndian>().unwrap();
+            assert_eq!(version, 0x00000001);
+
+            let count = br.read_u32::<LittleEndian>().unwrap();
+            let mut r = vec![];
+
+            // 8 bytes per ID...that is too much :|
+            for _ in 0..count {
+                r.push(br.read_u64::<LittleEndian>().unwrap() as TokenID);
+            }
+
+            return Box::new(r);
         }
-
-        Box::new(r)
     }
 }
 
@@ -140,6 +179,38 @@ mod tests {
             String::from("add 2,2"),
             String::from("sub 2 2"),
             String::from("mul 2,2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
             String::from("sub 2 2"),
         ];
 
