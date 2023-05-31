@@ -21,7 +21,6 @@ jobs:
 
   compile_cli:
     name: compile_cli-${{ matrix.name }}
-    needs: compile_core
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
