@@ -1,5 +1,25 @@
-[workspace]
+[package]
+name = "dtw-tools"
+version = "0.0.1"
+description = "CLI Tools for working with DTW"
 
+[workspace]
 members = [
-    "crates/dtw",
+    "crates/dtw"
 ]
+
+
+[workspace.dependencies]
+clap = { version = "4.0.0", features = ["derive"] }
+env_logger = "0.9"
+anyhow = "1.0.58"
+log = "0.4.17"
+
+[dependencies]
+clap = { workspace = true }
+env_logger = { workspace = true }
+dtw = { path = "crates/dtw" }
+termcolor = "1.2.0"
+anyhow = { workspace = true }
+atty = "0.2"
+log = { workspace = true }

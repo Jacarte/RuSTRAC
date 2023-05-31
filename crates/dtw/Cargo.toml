@@ -8,7 +8,8 @@ authors = ["Jacarte <jacarte9212@gmail.com>"]
 
 
 # wasmtime as a dep
-# [dependencies]
+[dependencies]
+byteorder = "1.4.3"
 
 [dev-dependencies]
 criterion = "0.4.0"
@@ -17,6 +18,7 @@ rand = "0.8.5"
 [[bench]]
 name = "dtws"
 harness = false
+
 
 [features]
 default = []
