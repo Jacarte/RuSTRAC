@@ -1,0 +1,26 @@
+[package]
+name = "dtw"
+version = "0.0.1"
+publish = false
+description = "DTW implementations for trace alignment"
+edition = "2021"
+authors = ["Jacarte <jacarte9212@gmail.com>"]
+
+
+# wasmtime as a dep
+# [dependencies]
+
+# [dev-dependencies]
+# criterion = "0.4.0"
+
+# [[bench]]
+# byte Error Rate
+# name = "eviction"
+# harness = false
+
+[features]
+default = []
+# All array checks are disabled, this, in theory will speed up the DTW code
+# If this feature is enabled, then the functions that calculates the DTW value, must be
+# marked as unsafe
+disable_mem_check = []
