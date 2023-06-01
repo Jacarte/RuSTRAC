@@ -262,7 +262,7 @@ impl DTW for FixedDTW<'_> {
             }
         }
 
-        let mut progre = 0;
+        // let mut progre = 0;
 
         for i in 1..=chain2.size() {
             let mut curr_row = vec![0.0; chain1.size() + 1];
@@ -282,22 +282,22 @@ impl DTW for FixedDTW<'_> {
                 let min = cost.min(leftcost).min(rightcost);
 
                 unsafe { curr_row[j] = cost };
-                progre += 1;
+                // progre += 1;
 
                 // Some progress
+                /*
                 eprint!(
                     "\r{}/{}({})",
                     progre,
                     chain1.size() * chain2.size(),
                     100.0 * (progre as f64 / (chain1.size() * chain2.size()) as f64)
-                );
+                );*/
             }
 
             // Copy the memory
             unsafe { prev_row.copy_from_slice(&curr_row) };
         }
 
-        eprintln!();
         unsafe { (prev_row[chain1.size()], None) }
     }
 }
