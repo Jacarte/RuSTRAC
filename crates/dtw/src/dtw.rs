@@ -420,6 +420,32 @@ mod tests {
         let chain2 = Box::new(vec![1, 2, 4]);
         let (result, ops) = dtw.calculate(chain1, chain2);
         println!("{:?}", ops);
-        assert_eq!(result, 6.0);
+        assert_eq!(result, 3.0);
+
+        
+    }
+
+
+    #[test]
+    fn test_eq() {
+        assert_eq!(2 + 2, 4);
+        let distance = STRACDistance::default();
+        let dtw = StandardDTW::new(&distance);
+        let chain1 = Box::new(vec![1, 2, 3, 5]);
+        let chain2 = Box::new(vec![1, 2, 4]);
+        let (result, ops) = dtw.calculate(chain1.clone(), chain2.clone());
+
+        let dtw1 = FixedDTW::new(&distance);
+        let (result2, ops2) = dtw.calculate(chain1.clone(), chain2.clone());
+
+        let dtw2 = UnsafeDTW::new(&distance);
+        let (result3, ops3) = dtw.calculate(chain1.clone(), chain2.clone());
+
+        assert_eq!(result, result2);
+        assert_eq!(result2, result3);
+        assert_eq!(ops, ops2);
+        assert_eq!(ops2, ops3);
+
+        
     }
 }

@@ -185,6 +185,7 @@ mod tests {
         let mut parser = ToMemoryParser {
             id_to_token: HashMap::new(),
             token_to_id: HashMap::new(),
+            largest_token: 0
         };
 
         let tokens = vec![
