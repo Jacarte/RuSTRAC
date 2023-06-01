@@ -10,9 +10,10 @@ Reimplementation of STRAC in Rust.
 
 ## Compiling and testing
 
-- Run `cargo test` for testing.
-- Run `cargo bench` for benching the different implementations.
+- Run `cargo test -p dtw` for testing.
+- Run `cargo bench -p dtw` for benching the different implementations.
 - Run `cargo build` for compiling.
+- Run `cargo build --target=wasm32-wasi` to create a Wasm-WASI binary with the DTW implementations.
 
 ## Roadmap
 
