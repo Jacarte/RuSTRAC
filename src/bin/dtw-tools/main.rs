@@ -70,6 +70,7 @@ macro_rules! subcommands {
 subcommands! {
     (dtw, "dtw")
     (memodtw, "memodtw")
+    (fastdtw, "fastdtw")
 }
 
 fn main() {

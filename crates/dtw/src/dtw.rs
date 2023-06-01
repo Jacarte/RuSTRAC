@@ -4,6 +4,10 @@
 
 /// Type for the trace token
 pub type TokenID = usize;
+/// Operation type in the warp path
+pub type OP = (usize, usize);
+
+pub type DTWResult = (f64, Option<Vec<OP>>);
 
 pub trait Distance {
     fn distance(&self, a: TokenID, b: TokenID) -> f64;
@@ -23,10 +27,60 @@ pub trait Accesor {
 }
 
 pub trait DTW {
-    fn calculate(&self, chain1: Box<dyn Accesor>, chain2: Box<dyn Accesor>) -> f64;
+    fn calculate(&self, chain1: Box<dyn Accesor>, chain2: Box<dyn Accesor>) -> DTWResult;
 
     fn can_provide_alignment(&self) -> bool {
         false
+    }
+
+    fn get_warp_path(&self, map: &[Vec<f64>]) -> Vec<OP> {
+        // We always start in the end of the alignment
+        let mut i = map.len() - 1;
+        let mut j = map[0].len() - 1;
+        let mut r = vec![];
+
+        while i > 0 || j > 0 {
+            let mut diagcost = 0.0;
+            let mut leftcost = 0.0;
+            let mut rightcost = 0.0;
+
+            if i > 0 && j > 0 {
+                diagcost = map[i - 1][j - 1];
+            } else {
+                diagcost = std::f64::INFINITY;
+            }
+
+            if i > 0 {
+                leftcost = map[i - 1][j];
+            } else {
+                leftcost = std::f64::INFINITY;
+            }
+
+            if j > 0 {
+                rightcost = map[i][j - 1];
+            } else {
+                rightcost = std::f64::INFINITY;
+            }
+
+            if diagcost <= leftcost && diagcost <= rightcost {
+                // The diagonal is better
+                i -= 1;
+                j -= 1;
+            } else if leftcost <= diagcost && leftcost <= rightcost {
+                i -= 1;
+            } else if rightcost <= diagcost && rightcost <= leftcost {
+                j -= 1;
+            } else if i <= j {
+                j -= 1;
+            } else {
+                i -= 1;
+            }
+
+            // Push the operation
+            r.push((i, j));
+        }
+
+        r
     }
 }
 
@@ -84,7 +138,7 @@ impl<'a> StandardDTW<'a> {
 }
 
 impl DTW for StandardDTW<'_> {
-    fn calculate(&self, chain1: Box<dyn Accesor>, chain2: Box<dyn Accesor>) -> f64 {
+    fn calculate(&self, chain1: Box<dyn Accesor>, chain2: Box<dyn Accesor>) -> DTWResult {
         // Do slices
         // We do it with the max MEM possible
         let mut dtw = vec![vec![0.0; chain2.size() + 1]; chain1.size() + 1];
@@ -111,7 +165,10 @@ impl DTW for StandardDTW<'_> {
             }
         }
 
-        dtw[chain1.size()][chain2.size()]
+        let cost = dtw[chain1.size()][chain2.size()];
+        let path = self.get_warp_path(&dtw);
+
+        (cost, Some(path))
     }
 }
 
@@ -140,7 +197,7 @@ impl<'a> UnsafeDTW<'a> {
 }
 
 impl DTW for UnsafeDTW<'_> {
-    fn calculate(&self, chain1: Box<dyn Accesor>, chain2: Box<dyn Accesor>) -> f64 {
+    fn calculate(&self, chain1: Box<dyn Accesor>, chain2: Box<dyn Accesor>) -> DTWResult {
         let mut dtw = vec![vec![0.0; chain2.size() + 1]; chain1.size() + 1];
 
         unsafe {
@@ -166,7 +223,10 @@ impl DTW for UnsafeDTW<'_> {
                 }
             }
 
-            dtw[chain1.size()][chain2.size()]
+            let cost = dtw[chain1.size()][chain2.size()];
+            let path = self.get_warp_path(&dtw);
+
+            (cost, Some(path))
         }
     }
 }
@@ -182,7 +242,7 @@ impl<'a> FixedDTW<'a> {
 }
 
 impl DTW for FixedDTW<'_> {
-    fn calculate(&self, chain1: Box<dyn Accesor>, chain2: Box<dyn Accesor>) -> f64 {
+    fn calculate(&self, chain1: Box<dyn Accesor>, chain2: Box<dyn Accesor>) -> DTWResult {
         // Swap the chains if the first one is smaller
         let (chain1, chain2) = if chain1.size() > chain2.size() {
             (chain2, chain1)
@@ -201,7 +261,6 @@ impl DTW for FixedDTW<'_> {
 
         let mut progre = 0;
 
-        eprintln!();
         for i in 1..=chain2.size() {
             let mut curr_row = vec![0.0; chain1.size() + 1];
             // TODO Check if the following actually helps
@@ -221,6 +280,7 @@ impl DTW for FixedDTW<'_> {
                 unsafe { curr_row[j] = cost + min };
                 progre += 1;
 
+                // Some progress
                 eprint!(
                     "\r{}/{}({})",
                     progre,
@@ -233,7 +293,8 @@ impl DTW for FixedDTW<'_> {
             unsafe { prev_row.copy_from_slice(&curr_row) };
         }
 
-        unsafe { prev_row[chain1.size()] }
+        eprintln!();
+        unsafe { (prev_row[chain1.size()], None) }
     }
 }
 
@@ -296,7 +357,7 @@ impl<'a, T> FastDTW<'a, T> {
 }
 
 impl<T> DTW for FastDTW<'_, T> {
-    fn calculate(&self, chain1: Box<dyn Accesor>, chain2: Box<dyn Accesor>) -> f64 {
+    fn calculate(&self, chain1: Box<dyn Accesor>, chain2: Box<dyn Accesor>) -> DTWResult {
         todo!();
 
         /*if chain1.size() <= self.min_size || chain2.size() <= self.min_size {
@@ -340,7 +401,9 @@ mod tests {
         let dtw = StandardDTW::new(&distance);
         let chain1 = Box::new(vec![1, 2, 3]);
         let chain2 = Box::new(vec![1, 2, 3]);
-        let result = dtw.calculate(chain1, chain2);
+        let (result, ops) = dtw.calculate(chain1, chain2);
+
+        println!("{:?}", ops);
         assert_eq!(result, 0.0);
     }
 
@@ -349,9 +412,10 @@ mod tests {
         assert_eq!(2 + 2, 4);
         let distance = STRACDistance::default();
         let dtw = StandardDTW::new(&distance);
-        let chain1 = Box::new(vec![1, 2, 3]);
+        let chain1 = Box::new(vec![1, 2, 3, 5]);
         let chain2 = Box::new(vec![1, 2, 4]);
-        let result = dtw.calculate(chain1, chain2);
+        let (result, ops) = dtw.calculate(chain1, chain2);
+        println!("{:?}", ops);
         assert_eq!(result, 3.0);
     }
 }
