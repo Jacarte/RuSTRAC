@@ -4,7 +4,7 @@ extern crate termcolor;
 use std::path::PathBuf;
 use termcolor::{Ansi, ColorChoice, NoColor, StandardStream, WriteColor};
 
-#[derive(clap::Parser)]
+#[derive(clap::Parser, Clone)]
 pub struct GeneralOpts {
     /// Use verbose output (-v info, -vv debug, -vvv trace).
     #[clap(long = "verbose", short = 'v', action = clap::ArgAction::Count)]
@@ -32,7 +32,7 @@ impl GeneralOpts {
 }
 
 // and then the methods are used to read the arguments,
-#[derive(clap::Parser)]
+#[derive(clap::Parser, Clone)]
 pub struct InputOutput {
     /// Trace file1 to process.
     ///
@@ -48,7 +48,7 @@ pub struct InputOutput {
     ///// Use the trace2 as a memfile
     //trace2_memfile: bool,
     #[clap(flatten)]
-    output: OutputArg,
+    pub output: OutputArg,
 
     #[clap(flatten)]
     general: GeneralOpts,
@@ -62,15 +62,14 @@ pub struct InputOutput {
     pub missmatch_cost: Option<f64>,
 }
 
-#[derive(clap::Parser)]
+#[derive(clap::Parser, Clone)]
 pub struct OutputArg {
     /// Where to place the alignment output.
-    #[clap(long)]
-    output1: Option<PathBuf>,
+    #[arg(long)]
+    pub output_alignment: Option<PathBuf>,
 
-    #[clap(long)]
-    output2: Option<PathBuf>,
-    // The distance number is written to the stdout
+    #[arg(long, default_value="-")]
+    pub gap_symbol: String
 }
 
 impl InputOutput {

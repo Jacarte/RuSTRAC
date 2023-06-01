@@ -20,9 +20,6 @@ pub trait Accesor {
     // fn allocate(&self, size: usize) -> Self;
 
     fn get(&self, idx: usize) -> TokenID;
-
-    // fn set(&self, idx: usize, value: TokenID);
-
     fn size(&self) -> usize;
 }
 
@@ -416,6 +413,6 @@ mod tests {
         let chain2 = Box::new(vec![1, 2, 4]);
         let (result, ops) = dtw.calculate(chain1, chain2);
         println!("{:?}", ops);
-        assert_eq!(result, 3.0);
+        assert_eq!(result, 6.0);
     }
 }

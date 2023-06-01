@@ -3,7 +3,7 @@ use clap::Parser;
 use dtw_core::dtw::DTW;
 
 /// Standard DTW implementation.
-#[derive(Parser)]
+#[derive(Parser, Clone)]
 pub struct Opts {
     #[clap(flatten)]
     io: dtw_tools::InputOutput,
@@ -26,11 +26,11 @@ impl Opts {
         tr1: Box<dyn dtw::dtw::Accesor>,
         tr2: Box<dyn dtw::dtw::Accesor>,
         distance: Box<dyn dtw::dtw::Distance>,
-    ) -> f64 {
+    ) -> dtw::dtw::DTWResult {
         // Initialize the DTWStandard
         let general = &self.io;
 
         let dtw = dtw::dtw::FixedDTW::new(&*distance);
-        return dtw.calculate(tr1, tr2);
+        dtw.calculate(tr1, tr2)
     }
 }
