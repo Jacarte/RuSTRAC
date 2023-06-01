@@ -105,8 +105,14 @@ fn main() {
     let n1clone = name1.clone();
     let n2clone = name2.clone();
 
-    let r1 = encoder.create_bin(trace1, PathBuf::from(format!("{}.trace.bin", name1.clone())));
-    let r2 = encoder.create_bin(trace2, PathBuf::from(format!("{}.trace.bin", name2.clone())));
+    let r1 = encoder.create_bin(
+        trace1,
+        PathBuf::from(format!("{}.trace.bin", name1.clone())),
+    );
+    let r2 = encoder.create_bin(
+        trace2,
+        PathBuf::from(format!("{}.trace.bin", name2.clone())),
+    );
 
     log::debug!("Runnning DTW");
 
@@ -132,11 +138,10 @@ fn main() {
             // Traverse the warping path in reverse order
 
             for index in 0..wp.len() - 1 {
-                
                 let reversed = index;
                 let i2 = wp[reversed as usize];
                 let i1 = wp[(reversed + 1) as usize];
-                
+
                 if i2.0 > i1.0 && i2.1 > i1.1 {
                     // Write the alignment
                     tr1p.push(Some(i1.0));
@@ -148,20 +153,19 @@ fn main() {
                     tr2p.push(None);
                     tr1p.push(Some(i1.0));
                 }
-
             }
 
             assert_eq!(tr1p.len(), tr2p.len());
 
             let pad1 = std::iter::repeat(" ")
-            .take(encoder.get_largest_token() - n1clone.len())
-            .collect::<String>();
+                .take(encoder.get_largest_token() - n1clone.len())
+                .collect::<String>();
             let pad2 = std::iter::repeat(" ")
                 .take(encoder.get_largest_token() - n2clone.len())
                 .collect::<String>();
             let div = std::iter::repeat("-")
-                    .take(2*encoder.get_largest_token() + 3)
-                    .collect::<String>();
+                .take(2 * encoder.get_largest_token() + 3)
+                .collect::<String>();
             // writeln!(file, "{}{} | {}{}", pad1, n1clone, n2clone, pad2).unwrap();
             // writeln!(file, "{}", div).unwrap();
 
@@ -203,10 +207,10 @@ fn main() {
                             .collect::<String>();
 
                         let pad1 = std::iter::repeat(" ")
-                        .take(encoder.get_largest_token() - 1)
-                        .collect::<String>();
+                            .take(encoder.get_largest_token() - 1)
+                            .collect::<String>();
 
-                        writeln!(file, "{}{} < {}{}", pad,t1, gap_symbol, pad1).unwrap();
+                        writeln!(file, "{}{} < {}{}", pad, t1, gap_symbol, pad1).unwrap();
                     }
                     _ => {}
                 }

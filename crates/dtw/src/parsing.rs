@@ -37,11 +37,10 @@ pub struct ToMemoryParser {
     // Global maps
     token_to_id: HashMap<String, TokenID>,
     id_to_token: HashMap<TokenID, String>,
-    largest_token: usize
+    largest_token: usize,
 }
 
-impl ToMemoryParser{
-
+impl ToMemoryParser {
     pub fn get_largest_token(&self) -> usize {
         self.largest_token
     }
@@ -185,7 +184,7 @@ mod tests {
         let mut parser = ToMemoryParser {
             id_to_token: HashMap::new(),
             token_to_id: HashMap::new(),
-            largest_token: 0
+            largest_token: 0,
         };
 
         let tokens = vec![

@@ -91,7 +91,6 @@ fn bench_dtws(c: &mut Criterion) {
             cumulative_duration
         })
     });
-
 }
 
 criterion_group!(benches, bench_dtws);
