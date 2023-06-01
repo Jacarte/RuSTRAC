@@ -17,7 +17,8 @@ fn bench_dtws(c: &mut Criterion) {
             for _ in 0..iters {
                 let start = std::time::Instant::now();
                 // We include the instantiation of the DTWImpl in the benchmark
-                let dtw = dtw::dtw::StandardDTW::new(&dtw::dtw::STRACDistance);
+                let distancefunc = dtw::dtw::STRACDistance::default();
+                let dtw = dtw::dtw::StandardDTW::new(&distancefunc);
                 let _distance = dtw.calculate(Box::new(x.clone()), Box::new(y.clone()));
 
                 cumulative_duration += start.elapsed();
@@ -36,8 +37,10 @@ fn bench_dtws(c: &mut Criterion) {
 
             for _ in 0..iters {
                 let start = std::time::Instant::now();
+                let distancefunc = dtw::dtw::STRACDistance::default();
+
                 // We include the instantiation of the DTWImpl in the benchmark
-                let dtw = dtw::dtw::UnsafeDTW::new(&dtw::dtw::STRACDistance);
+                let dtw = dtw::dtw::UnsafeDTW::new(&distancefunc);
                 let _distance = dtw.calculate(Box::new(x.clone()), Box::new(y.clone()));
 
                 cumulative_duration += start.elapsed();
@@ -56,8 +59,9 @@ fn bench_dtws(c: &mut Criterion) {
 
             for _ in 0..iters {
                 let start = std::time::Instant::now();
+                let distancefunc = dtw::dtw::STRACDistance::default();
                 // We include the instantiation of the DTWImpl in the benchmark
-                let dtw = dtw::dtw::FixedDTW::new(&dtw::dtw::STRACDistance);
+                let dtw = dtw::dtw::FixedDTW::new(&distancefunc);
                 let _distance = dtw.calculate(Box::new(x.clone()), Box::new(y.clone()));
 
                 cumulative_duration += start.elapsed();
