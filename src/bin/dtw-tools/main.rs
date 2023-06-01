@@ -3,13 +3,13 @@ extern crate clap;
 extern crate dtw as dtw_core;
 extern crate termcolor;
 
-use anyhow::*;
+
 use clap::Parser;
 use dtw_core::parsing::TraceEncoder;
-use std::io::{self, Write};
+use std::io::{Write};
 use std::path::PathBuf;
-use std::process::ExitCode;
-use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
+
+
 
 // This code is copied and transformed from the wasm-tools repo
 //
@@ -89,11 +89,11 @@ fn main() {
     // TODO replace with a custom separator
     let trace1 = trace1
         .split('\n')
-        .map(|s| String::from(s))
+        .map(String::from)
         .collect::<Vec<_>>();
     let trace2 = trace2
         .split('\n')
-        .map(|s| String::from(s))
+        .map(String::from)
         .collect::<Vec<_>>();
 
     log::debug!("Generating bin traces");
@@ -117,8 +117,8 @@ fn main() {
     log::debug!("Runnning DTW");
 
     let distance = dtw_core::dtw::STRACDistance::new(
-        args.io().gap_cost.or(Some(1.0)).unwrap(),
-        args.io().missmatch_cost.or(Some(3.0)).unwrap(),
+        args.io().gap_cost.unwrap_or(1.0),
+        args.io().missmatch_cost.unwrap_or(3.0),
         0.0,
     );
     let output_alignment = args.io().output.output_alignment.clone();
@@ -139,8 +139,8 @@ fn main() {
 
             for index in 0..wp.len() - 1 {
                 let reversed = index;
-                let i2 = wp[reversed as usize];
-                let i1 = wp[(reversed + 1) as usize];
+                let i2 = wp[reversed];
+                let i1 = wp[reversed + 1];
 
                 if i2.0 > i1.0 && i2.1 > i1.1 {
                     // Write the alignment
@@ -157,15 +157,9 @@ fn main() {
 
             assert_eq!(tr1p.len(), tr2p.len());
 
-            let pad1 = std::iter::repeat(" ")
-                .take(encoder.get_largest_token() - n1clone.len())
-                .collect::<String>();
-            let pad2 = std::iter::repeat(" ")
-                .take(encoder.get_largest_token() - n2clone.len())
-                .collect::<String>();
-            let div = std::iter::repeat("-")
-                .take(2 * encoder.get_largest_token() + 3)
-                .collect::<String>();
+            let _pad1 = " ".repeat(encoder.get_largest_token() - n1clone.len());
+            let _pad2 = " ".repeat(encoder.get_largest_token() - n2clone.len());
+            let _div = "-".repeat(2 * encoder.get_largest_token() + 3);
             // writeln!(file, "{}{} | {}{}", pad1, n1clone, n2clone, pad2).unwrap();
             // writeln!(file, "{}", div).unwrap();
 
@@ -178,37 +172,25 @@ fn main() {
                         let t2 = encoder.id_to_token(*t2);
                         let eq = if t1 == t2 { "|" } else { "!" };
                         // align the tokens
-                        let pad1 = std::iter::repeat(" ")
-                            .take(encoder.get_largest_token() - t1.len())
-                            .collect::<String>();
-                        let pad2 = std::iter::repeat(" ")
-                            .take(encoder.get_largest_token() - t2.len())
-                            .collect::<String>();
+                        let pad1 = " ".repeat(encoder.get_largest_token() - t1.len());
+                        let pad2 = " ".repeat(encoder.get_largest_token() - t2.len());
                         writeln!(file, "{}{} {} {}{}", pad1, t1, eq, t2, pad2).unwrap();
                     }
                     (None, Some(i2)) => {
                         let t2 = r2.get(*i2).unwrap();
                         let t2 = encoder.id_to_token(*t2);
 
-                        let pad = std::iter::repeat(" ")
-                            .take(encoder.get_largest_token() - t2.len())
-                            .collect::<String>();
-                        let pad1 = std::iter::repeat(" ")
-                            .take(encoder.get_largest_token() - 1)
-                            .collect::<String>();
+                        let pad = " ".repeat(encoder.get_largest_token() - t2.len());
+                        let pad1 = " ".repeat(encoder.get_largest_token() - 1);
 
                         writeln!(file, "{}{} > {}{}", pad1, gap_symbol, t2, pad).unwrap();
                     }
                     (Some(i1), None) => {
                         let t1 = r1.get(*i1).unwrap();
                         let t1 = encoder.id_to_token(*t1);
-                        let pad = std::iter::repeat(" ")
-                            .take(encoder.get_largest_token() - t1.len())
-                            .collect::<String>();
+                        let pad = " ".repeat(encoder.get_largest_token() - t1.len());
 
-                        let pad1 = std::iter::repeat(" ")
-                            .take(encoder.get_largest_token() - 1)
-                            .collect::<String>();
+                        let pad1 = " ".repeat(encoder.get_largest_token() - 1);
 
                         writeln!(file, "{}{} < {}{}", pad, t1, gap_symbol, pad1).unwrap();
                     }

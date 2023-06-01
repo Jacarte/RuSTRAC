@@ -1,4 +1,4 @@
-use anyhow::Result;
+
 use clap::Parser;
 use dtw_core::dtw::DTW;
 
@@ -21,7 +21,7 @@ impl Opts {
 
     pub fn run(&self, tr1: Box<dyn dtw::dtw::Accesor>, tr2: Box<dyn dtw::dtw::Accesor>, distance: Box<dyn dtw::dtw::Distance>) ->  dtw::dtw::DTWResult {
         // Initialize the DTWStandard
-        let general = &self.io;
+        let _general = &self.io;
 
         let dtw = dtw::dtw::StandardDTW::new(&*distance);
         dtw.calculate(tr1, tr2)

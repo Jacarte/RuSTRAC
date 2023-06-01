@@ -2,7 +2,7 @@
 //
 extern crate termcolor;
 use std::path::PathBuf;
-use termcolor::{Ansi, ColorChoice, NoColor, StandardStream, WriteColor};
+use termcolor::{ColorChoice};
 
 #[derive(clap::Parser, Clone)]
 pub struct GeneralOpts {
