@@ -2,33 +2,6 @@ use anyhow::Result;
 use clap::Parser;
 use dtw_core::dtw::DTW;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /// Standard DTW implementation.
 #[derive(Parser, Clone)]
 pub struct Opts {
@@ -46,7 +19,10 @@ impl Opts {
     }
 
     pub fn run(
-        &self, tr1: Box<dyn dtw::dtw::Accesor>, tr2: Box<dyn dtw::dtw::Accesor>, distance: Box<dyn dtw::dtw::Distance>,
+        &self,
+        tr1: Box<dyn dtw::dtw::Accesor>,
+        tr2: Box<dyn dtw::dtw::Accesor>,
+        distance: Box<dyn dtw::dtw::Distance>,
     ) -> dtw::dtw::DTWResult {
         // Initialize the DTWStandard
         let general = &self.io;
