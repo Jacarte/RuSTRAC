@@ -162,8 +162,8 @@ fn main() {
             let div = std::iter::repeat("-")
                     .take(2*encoder.get_largest_token() + 3)
                     .collect::<String>();
-            writeln!(file, "{}{} | {}{}", pad1, n1clone, n2clone, pad2).unwrap();
-            writeln!(file, "{}", div).unwrap();
+            // writeln!(file, "{}{} | {}{}", pad1, n1clone, n2clone, pad2).unwrap();
+            // writeln!(file, "{}", div).unwrap();
 
             for (i1, i2) in tr1p.iter().rev().zip(tr2p.iter().rev()) {
                 match (i1, i2) {
@@ -193,7 +193,7 @@ fn main() {
                             .take(encoder.get_largest_token() - 1)
                             .collect::<String>();
 
-                        writeln!(file, "{}{} g {}{}", pad1, gap_symbol, t2, pad).unwrap();
+                        writeln!(file, "{}{} > {}{}", pad1, gap_symbol, t2, pad).unwrap();
                     }
                     (Some(i1), None) => {
                         let t1 = r1.get(*i1).unwrap();
@@ -206,7 +206,7 @@ fn main() {
                         .take(encoder.get_largest_token() - 1)
                         .collect::<String>();
 
-                        writeln!(file, "{}{} g {}{}", pad,t1, gap_symbol, pad1).unwrap();
+                        writeln!(file, "{}{} < {}{}", pad,t1, gap_symbol, pad1).unwrap();
                     }
                     _ => {}
                 }
