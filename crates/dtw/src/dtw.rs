@@ -282,16 +282,6 @@ impl DTW for FixedDTW<'_> {
                 let min = cost.min(leftcost).min(rightcost);
 
                 unsafe { curr_row[j] = cost };
-                // progre += 1;
-
-                // Some progress
-                /*
-                eprint!(
-                    "\r{}/{}({})",
-                    progre,
-                    chain1.size() * chain2.size(),
-                    100.0 * (progre as f64 / (chain1.size() * chain2.size()) as f64)
-                );*/
             }
 
             // Copy the memory
@@ -299,6 +289,180 @@ impl DTW for FixedDTW<'_> {
         }
 
         unsafe { (prev_row[chain1.size()], None) }
+    }
+}
+
+pub struct DynamicWindow<'a> {
+    min_values: &'a mut [i32],
+    max_values: &'a mut [i32],
+    width: usize
+} 
+
+impl<'a> DynamicWindow<'a> {
+
+    #[inline]
+    pub fn get_max(&self, row: usize) -> usize{
+        self.max_values[row] as usize
+    }
+
+    #[inline]
+    pub fn get_min(&self, row: usize) -> usize {
+        self.min_values[row] as usize
+    }
+
+    #[inline]
+    pub fn expand(&mut self, radius: i32) {
+        for i in 0..self.min_values.len() {
+            let val = self.min_values[i];
+            self.min_values[i] = 0.max(val - radius);
+            let maxval = self.max_values[i];
+            self.max_values[i] = (maxval + radius).min(self.width as i32);
+        }
+    }
+
+    #[inline]
+    pub fn get_limits(&self, row:usize) -> (usize, usize) {
+        (self.get_min(row), self.get_max(row))
+    }
+
+    #[inline]
+    pub fn is_in_range(&self, row: usize, col: usize) -> bool {
+        row < self.min_values.len() && self.min_values[row]  <= col as i32 && col as i32 < self.max_values[row] as usize
+    }
+
+    pub fn set(&mut self, row: usize, col: usize) {
+        if row >= self.min_values.len() || col > self.width {
+            return;
+        }
+
+        if self.min_values[row] == -1 && col >= 0 && col <= self.width
+        {
+            self.min_values[row] = col as i32;
+            self.max_values[row] = col as i32;
+        }
+        else if self.min_values[row] > col as i32 && col >= 0 && col <= self.width  // minimum range in the row is expanded
+        {
+            self.min_values[row] = col as i32;
+        }
+        else if self.max_values[row] < col as i32 && col >= 0 && col <= self.width // maximum range in the row is expanded
+        {
+            self.max_values[row] = col as i32;
+        }  // end if
+    }
+
+    #[inline]
+    pub fn set_range(&mut self, min: i32, max: i32, row: usize){
+        self.min_values[row] = min;
+        self.max_values[row] = max;
+    }
+
+    #[inline]
+    pub fn init(&mut self, height: usize) -> &mut Self {
+        for i in 0..height{
+            self.set_range(0, self.width as i32, i);
+        }
+
+        self
+    }
+
+   /* pub fn new(height: usize, width: usize, set: bool) -> Self {
+        DynamicWindow {
+            min_values: &vec![if set {-1} else {0}; height],
+            max_values: &vec![if set {-1} else {width as i32}; height],
+            width
+        }
+    } */
+}
+
+pub struct WindowedDTW<'a> {
+    window: usize,
+    distance: &'a dyn Distance
+}
+
+impl<'a> WindowedDTW<'a> {
+
+    pub fn new(window: usize, distance: &'a dyn Distance) -> Self {
+        WindowedDTW {
+            window,
+            distance
+        }
+    }
+}
+
+impl<'a> DTW for WindowedDTW<'a> {
+    
+    fn calculate(&self, chain1: Box<dyn Accesor>, chain2: Box<dyn Accesor>) -> DTWResult {
+         // Do slices
+        // We do it with the max MEM possible
+        let mut dtw = vec![vec![0.0; chain2.size() + 1]; chain1.size() + 1];
+        let mut dtw = dtw.as_mut_slice();
+
+        let mut dynamic_window = DynamicWindow {
+            min_values: &mut vec![0; chain1.size() + 1],
+            max_values: &mut vec![self.window as i32; chain1.size() + 1],
+            width:self.window
+        };
+        // Initialize the min part of the range
+        // let mut dynamic_window = dynamic_window.init(chain1.size() + 1);
+        
+
+        for i in 0..=chain1.size() {
+            let (min, max) = dynamic_window.get_limits(i);
+            for j in min..max {
+                // patch here ?
+                match (i, j) {
+                    (0, 0) => dtw[0][0] = 0.0,
+                    // First column
+                    (0, _) => dtw[0][j] = self.distance.gap_cost()*j as f64,
+                    // First row
+                    (i, 0) => dtw[i][0] = self.distance.gap_cost()*i as f64,
+                    _ => {
+                        let a = chain1.get(i - 1);
+                        let b = chain2.get(j - 1);
+
+                        // If i - 1, j - 1 are outside the window then return INFINITE
+                        let diagcost = if dynamic_window.is_in_range(i - 1, j - 1) {
+                            self.distance.distance(a, b) + dtw[i - 1][j - 1]
+                        } else {
+                            std::f64::INFINITY
+                        };
+                        
+                        let leftcost = if dynamic_window.is_in_range(i - 1, j) {
+                            self.distance.gap_cost() + dtw[i - 1][j]
+                        } else {
+                            std::f64::INFINITY
+                        };
+
+                        let rightcost = if dynamic_window.is_in_range(i, j - 1) {
+                            self.distance.gap_cost() + dtw[i][j - 1]
+                        } else {
+                            std::f64::INFINITY
+                        };
+
+                        //let diagcost = self.distance.distance(a, b) + dtw[i - 1][j - 1];
+                        // let leftcost = self.distance.gap_cost() + dtw[i - 1][j];
+                        // let rightcost = self.distance.gap_cost() + dtw[i][j - 1];
+
+                        let mini = diagcost.min(leftcost).min(rightcost);
+
+                        dtw[i][j] = mini;
+                    }
+                }
+            }
+        }
+
+        // Write the bidimensional matrix
+        for i in 0..=chain1.size() {
+            for j in 0..=chain2.size() {
+                print!("{:3} ", dtw[i][j]);
+            }
+            println!();
+        }
+
+        let cost = dtw[chain1.size()][chain2.size()];
+        let path = self.get_warp_path(&dtw);
+
+        (cost, Some(path))
     }
 }
 
@@ -315,6 +479,7 @@ fn reduce_by_half<'a, T>(allocator: &'a dyn AccesorAllocator<T>, accessor: &mut 
 where
     T: Accesor,
 {
+    // TODO create a random strategy as well
     let mut r = allocator.allocate(accessor.size() / 2);
     for i in 0..r.size() {
         allocator.set(i, accessor.get(i * 2), &mut r);
@@ -336,7 +501,7 @@ impl AccesorAllocator<Vec<TokenID>> for InMemoryVectorAllocator {
 
 pub struct FastDTW<'a, T> {
     distance: &'a dyn Distance,
-    window_size: usize,
+    radius: usize,
     default_dtw: &'a dyn DTW,
     min_size: usize,
     accesor_allocator: &'a dyn AccesorAllocator<T>,
@@ -345,14 +510,14 @@ pub struct FastDTW<'a, T> {
 impl<'a, T> FastDTW<'a, T> {
     pub fn new(
         distance: &'a dyn Distance,
-        window_size: usize,
+        radius: usize,
         min_size: usize,
         default_dtw: &'a dyn DTW,
         accesor_allocator: &'a dyn AccesorAllocator<T>,
     ) -> FastDTW<'a, T> {
         FastDTW {
             distance,
-            window_size,
+            radius,
             min_size,
             default_dtw,
             accesor_allocator,
@@ -363,8 +528,8 @@ impl<'a, T> FastDTW<'a, T> {
 impl<T> DTW for FastDTW<'_, T> {
     fn calculate(&self, chain1: Box<dyn Accesor>, chain2: Box<dyn Accesor>) -> DTWResult {
         todo!();
-
-        /*if chain1.size() <= self.min_size || chain2.size() <= self.min_size {
+        /*
+        if chain1.size() <= self.min_size || chain2.size() <= self.min_size {
             return self.default_dtw.calculate(chain1, chain2);
         }
 
@@ -372,27 +537,19 @@ impl<T> DTW for FastDTW<'_, T> {
         let chain1_half = reduce_by_half(self.accesor_allocator, &mut chain1);
         let chain2_half = reduce_by_half(self.accesor_allocator, &mut chain2);
 
-        let path = self.calculate(chain1_half, chain2_half);
+        // TODO move this to a queue. Yet, we do not have that many stack calls, log(n) at most
+        let (cost, path) = self.calculate(chain1_half, chain2_half);
+
+
+        // Expand the path 
+        // 
+
 
         // expand
-        0.0*/
+        todo!()*/
     }
 }
 
-// Traditional DTW O(nn) space and time
-//
-
-// Windowed DTW O(nn) space and O(nn) time
-
-// Memoized DTW O(n) space and O(nn) time
-//
-
-// FastDTW O(n) space and O(n log n) time
-//
-
-// Wavefront DTW O(n) space and O(nn/SIMD size) time
-//
-//
 
 #[cfg(test)]
 mod tests {
@@ -425,6 +582,20 @@ mod tests {
         
     }
 
+
+    #[test]
+    fn testwindow() {
+        assert_eq!(2 + 2, 4);
+        let distance = STRACDistance::default();
+        let dtw = WindowedDTW::new(3, &distance);
+        let chain1 = Box::new(vec![1, 2, 3, 5, 2, 3, 4]);
+        let chain2 = Box::new(vec![1, 2, 4, 6, 7, 1, 2, 3, 4]);
+        let (result, ops) = dtw.calculate(chain1, chain2);
+        println!("{:?}", ops);
+        assert_eq!(result, 3.0);
+
+        
+    }
 
     #[test]
     fn test_eq() {
