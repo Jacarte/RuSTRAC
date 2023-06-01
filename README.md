@@ -25,8 +25,8 @@ Reimplementation of STRAC in Rust.
 - [ ] Generic tokens separator
 - [ ] Generic token filter
 - [ ] FastDTW
-- [ ] Export alignment
-- [ ] Writing the trace in a custom bin file for faster reading.
+- [x] Export alignment
+- [x] Writing the trace in a custom bin file for faster reading.
 
 ## Goals:
 

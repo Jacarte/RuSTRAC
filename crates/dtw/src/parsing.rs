@@ -37,6 +37,14 @@ pub struct ToMemoryParser {
     // Global maps
     token_to_id: HashMap<String, TokenID>,
     id_to_token: HashMap<TokenID, String>,
+    largest_token: usize
+}
+
+impl ToMemoryParser{
+
+    pub fn get_largest_token(&self) -> usize {
+        self.largest_token
+    }
 }
 
 impl<'a> TraceEncoder<'a> for ToMemoryParser {
@@ -79,6 +87,10 @@ impl<'a> TraceEncoder<'a> for ToMemoryParser {
     }
 
     fn token_to_id(&mut self, token: &str) -> TokenID {
+        if token.len() > self.largest_token {
+            self.largest_token = token.len();
+        }
+
         let id = self.token_to_id.len();
         // Is the size of the dict when inserting if it does not exist
         let id = *self

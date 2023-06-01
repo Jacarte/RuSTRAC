@@ -153,7 +153,17 @@ fn main() {
 
             assert_eq!(tr1p.len(), tr2p.len());
 
-            writeln!(file, "Alignment: {} --- {}", n1clone, n2clone).unwrap();
+            let pad1 = std::iter::repeat(" ")
+            .take(encoder.get_largest_token() - n1clone.len())
+            .collect::<String>();
+            let pad2 = std::iter::repeat(" ")
+                .take(encoder.get_largest_token() - n2clone.len())
+                .collect::<String>();
+            let div = std::iter::repeat("-")
+                    .take(2*encoder.get_largest_token() + 3)
+                    .collect::<String>();
+            writeln!(file, "{}{} | {}{}", pad1, n1clone, n2clone, pad2).unwrap();
+            writeln!(file, "{}", div).unwrap();
 
             for (i1, i2) in tr1p.iter().rev().zip(tr2p.iter().rev()) {
                 match (i1, i2) {
@@ -162,18 +172,41 @@ fn main() {
                         let t2 = r2.get(*i2).unwrap();
                         let t1 = encoder.id_to_token(*t1);
                         let t2 = encoder.id_to_token(*t2);
-                        let eq = if t1 == t2 { "o" } else { "m" };
-                        writeln!(file, "{} {} --- {}",eq, t1, t2).unwrap();
+                        let eq = if t1 == t2 { "|" } else { "!" };
+                        // align the tokens
+                        let pad1 = std::iter::repeat(" ")
+                            .take(encoder.get_largest_token() - t1.len())
+                            .collect::<String>();
+                        let pad2 = std::iter::repeat(" ")
+                            .take(encoder.get_largest_token() - t2.len())
+                            .collect::<String>();
+                        writeln!(file, "{}{} {} {}{}", pad1, t1, eq, t2, pad2).unwrap();
                     }
                     (None, Some(i2)) => {
                         let t2 = r2.get(*i2).unwrap();
                         let t2 = encoder.id_to_token(*t2);
-                        writeln!(file, "g {} --- {}", gap_symbol, t2).unwrap();
+
+                        let pad = std::iter::repeat(" ")
+                            .take(encoder.get_largest_token() - t2.len())
+                            .collect::<String>();
+                        let pad1 = std::iter::repeat(" ")
+                            .take(encoder.get_largest_token() - 1)
+                            .collect::<String>();
+
+                        writeln!(file, "{}{} g {}{}", pad1, gap_symbol, t2, pad).unwrap();
                     }
                     (Some(i1), None) => {
                         let t1 = r1.get(*i1).unwrap();
                         let t1 = encoder.id_to_token(*t1);
-                        writeln!(file, "g {} --- {}", t1, gap_symbol).unwrap();
+                        let pad = std::iter::repeat(" ")
+                            .take(encoder.get_largest_token() - t1.len())
+                            .collect::<String>();
+
+                        let pad1 = std::iter::repeat(" ")
+                        .take(encoder.get_largest_token() - 1)
+                        .collect::<String>();
+
+                        writeln!(file, "{}{} g {}{}", pad,t1, gap_symbol, pad1).unwrap();
                     }
                     _ => {}
                 }

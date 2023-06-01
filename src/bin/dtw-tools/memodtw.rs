@@ -2,6 +2,33 @@ use anyhow::Result;
 use clap::Parser;
 use dtw_core::dtw::DTW;
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /// Standard DTW implementation.
 #[derive(Parser, Clone)]
 pub struct Opts {
