@@ -146,17 +146,20 @@ impl DTW for StandardDTW<'_> {
                 match (i, j) {
                     (0, 0) => dtw[0][0] = 0.0,
                     // First column
-                    (0, _) => dtw[0][j] = self.distance.gap_cost() + dtw[0][j - 1],
+                    (0, _) => dtw[0][j] = self.distance.gap_cost()*j as f64,
                     // First row
-                    (i, 0) => dtw[i][0] = self.distance.gap_cost() + dtw[i - 1][0],
+                    (i, 0) => dtw[i][0] = self.distance.gap_cost()*i as f64,
                     _ => {
                         let a = chain1.get(i - 1);
                         let b = chain2.get(j - 1);
 
-                        let cost = self.distance.distance(a, b);
-                        let min = dtw[i - 1][j].min(dtw[i][j - 1]).min(dtw[i - 1][j - 1]);
+                        let diagcost = self.distance.distance(a, b) + dtw[i - 1][j - 1];
+                        let leftcost = self.distance.gap_cost() + dtw[i - 1][j];
+                        let rightcost = self.distance.gap_cost() + dtw[i][j - 1];
 
-                        dtw[i][j] = cost + min;
+                        let min = diagcost.min(leftcost).min(rightcost);
+
+                        dtw[i][j] = min;
                     }
                 }
             }
@@ -204,17 +207,20 @@ impl DTW for UnsafeDTW<'_> {
                     match (i, j) {
                         (0, 0) => dtw[0][0] = 0.0,
                         // First column
-                        (0, _) => dtw[0][j] = self.distance.gap_cost() + dtw[0][j - 1],
+                        (0, _) => dtw[0][j] = self.distance.gap_cost()*j as f64,
                         // First row
-                        (i, 0) => dtw[i][0] = self.distance.gap_cost() + dtw[i - 1][0],
+                        (i, 0) => dtw[i][0] = self.distance.gap_cost()*i as f64,
                         _ => {
                             let a = chain1.get(i - 1);
                             let b = chain2.get(j - 1);
 
-                            let cost = self.distance.distance(a, b);
-                            let min = dtw[i - 1][j].min(dtw[i][j - 1]).min(dtw[i - 1][j - 1]);
+                            let cost = self.distance.distance(a, b) + dtw[i - 1][j - 1];
+                            let leftcost = self.distance.gap_cost() + dtw[i - 1][j];
+                            let rightcost = self.distance.gap_cost() + dtw[i][j - 1];
 
-                            dtw[i][j] = cost + min;
+                            let min = cost.min(leftcost).min(rightcost);
+
+                            dtw[i][j] = cost;
                         }
                     }
                 }
@@ -269,12 +275,13 @@ impl DTW for FixedDTW<'_> {
                 let a = chain1.get(j - 1);
                 let b = chain2.get(i - 1);
 
-                let cost = self.distance.distance(a, b);
-                let min = unsafe { prev_row[j] }
-                    .min(curr_row[j - 1])
-                    .min(prev_row[j - 1]);
+                let cost = self.distance.distance(a, b) + unsafe { prev_row[j - 1] };
+                let leftcost = self.distance.gap_cost() + unsafe { prev_row[j] };
+                let rightcost = self.distance.gap_cost() + curr_row[j - 1];
 
-                unsafe { curr_row[j] = cost + min };
+                let min = cost.min(leftcost).min(rightcost);
+
+                unsafe { curr_row[j] = cost };
                 progre += 1;
 
                 // Some progress
