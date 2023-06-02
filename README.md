@@ -25,10 +25,10 @@ Reimplementation of STRAC in Rust.
 - [ ] Wavefront implementation for SIMD
 - [ ] Generic tokens separator
 - [ ] Generic token filter
-- [ ] FastDTW
+- [x] FastDTW
 - [x] Export alignment
 - [x] Writing the trace in a custom bin file for faster reading.
-- [ ] Clippy and fmt in CI
+- [x] Clippy and fmt in CI
 - [ ] Automatic package deploy in cargo
 - [ ] Doc generation
 - [ ] Errorify ?
