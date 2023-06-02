@@ -1,4 +1,4 @@
-ame: CI
+name: Fuzz
 
 on:
   # Build and attach assets to any published releases
