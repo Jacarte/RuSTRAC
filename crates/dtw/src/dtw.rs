@@ -654,17 +654,10 @@ impl<'a> FastDTW<'a> {
 
         if len2 % 2 == 1 && len2 > 0 {
             dynamic_window.replicate_last_row();
-            // Replicate the last column
-            //dynamic_window.expand(len2 - 1, dynamic_window.get_min(len2 - 2).or(None).unwrap());
-            //dynamic_window.expand(len2 - 1, dynamic_window.get_max(len2 - 2).or(None).unwrap());
         }
 
-        // log::info!("Scaling");
-        dynamic_window.display();
-        //println!();
 
         let mut scaled = DynamicWindow::new(len2 + 1, len1);
-        //let mut scaled = scaled.init(len2 + 1);
 
         for i in 0..len2 + 1 {
             let min_col = dynamic_window.get_min(i);
@@ -711,8 +704,6 @@ impl<'a> FastDTW<'a> {
             //scaled.set(i, max_col.overflowing_add(radius).min(len1).0);
         }
 
-        // log::info!("Grown");
-        // scaled.display();
 
         scaled.clone()
     }

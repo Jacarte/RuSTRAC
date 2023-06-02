@@ -73,7 +73,7 @@ pub struct OutputArg {
     pub output_alignment: Option<PathBuf>,
 
     #[arg(long, default_value = "-")]
-    pub gap_symbol: String,
+    pub gap_symbol: char,
 }
 
 impl InputOutput {

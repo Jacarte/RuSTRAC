@@ -84,8 +84,15 @@ fn main() {
 
     // Separate the tokens by endline
     // TODO replace with a custom separator
-    let trace1 = trace1.split('\n').map(String::from).collect::<Vec<_>>();
-    let trace2 = trace2.split('\n').map(String::from).collect::<Vec<_>>();
+    log::debug!("Separating by '{}'", args.io().separator);
+    let trace1 = trace1
+        .split(&args.io().separator)
+        .map(String::from)
+        .collect::<Vec<_>>();
+    let trace2 = trace2
+        .split(&args.io().separator)
+        .map(String::from)
+        .collect::<Vec<_>>();
 
     // Swap if they are larger
     log::debug!("Generating bin traces");
