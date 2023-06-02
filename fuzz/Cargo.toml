@@ -1,0 +1,31 @@
+[package]
+name = "dtw-fuzz"
+version = "0.0.1"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+arbitrary = "1"
+env_logger = "0.9"
+libfuzzer-sys = "0.4.0"
+log = "0.4"
+tempfile = "3.0"
+rand = { version = "0.8.0", features = ["small_rng"] }
+thiserror = "1.0.37"
+
+dtw = { path = "../crates/dtw" }
+
+
+
+[lib]
+test = false
+doctest = false
+
+[[bin]]
+name = "align"
+path = "fuzz_targets/align.rs"
+test = false
+doc = false
