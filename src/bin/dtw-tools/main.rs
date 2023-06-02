@@ -3,13 +3,10 @@ extern crate clap;
 extern crate dtw as dtw_core;
 extern crate termcolor;
 
-
 use clap::Parser;
 use dtw_core::parsing::TraceEncoder;
-use std::io::{Write};
+use std::io::Write;
 use std::path::PathBuf;
-
-
 
 // This code is copied and transformed from the wasm-tools repo
 //
@@ -87,14 +84,15 @@ fn main() {
 
     // Separate the tokens by endline
     // TODO replace with a custom separator
-    let trace1 = trace1
-        .split('\n')
-        .map(String::from)
-        .collect::<Vec<_>>();
-    let trace2 = trace2
-        .split('\n')
-        .map(String::from)
-        .collect::<Vec<_>>();
+    let trace1 = trace1.split('\n').map(String::from).collect::<Vec<_>>();
+    let trace2 = trace2.split('\n').map(String::from).collect::<Vec<_>>();
+
+    // Swap if they are larger
+    let (trace1, trace2) = if trace1.len() > trace2.len() {
+        (trace2, trace1)
+    } else {
+        (trace1, trace2)
+    };
 
     log::debug!("Generating bin traces");
 
@@ -128,7 +126,7 @@ fn main() {
     let (distance, wp) = args.run(Box::new(r1.clone()), Box::new(r2.clone()), distance);
 
     // Now we create the alignment using the warping path
-    if let Some(wp) = wp {
+    if let Some((wp, _, _)) = wp {
         if let Some(pb) = output_alignment {
             // Open the file for writing
             let mut file = std::fs::File::create(pb).unwrap();

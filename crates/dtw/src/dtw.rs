@@ -7,7 +7,7 @@ pub type TokenID = usize;
 /// Operation type in the warp path
 pub type OP = (usize, usize);
 
-pub type DTWResult = (f64, Option<Vec<OP>>);
+pub type DTWResult = (f64, Option<(Vec<OP>, usize, usize)>);
 
 pub trait Distance {
     fn distance(&self, a: TokenID, b: TokenID) -> f64;
@@ -20,7 +20,10 @@ pub trait Accesor {
     // fn allocate(&self, size: usize) -> Self;
 
     fn get(&self, idx: usize) -> TokenID;
+
     fn size(&self) -> usize;
+
+    fn get_half(&self) -> Box<dyn Accesor>;
 }
 
 pub trait DTW {
@@ -30,32 +33,35 @@ pub trait DTW {
         false
     }
 
-    fn get_warp_path(&self, map: &[Vec<f64>], window: Option<DynamicWindow>) -> Vec<OP> {
+    fn get_warp_path(
+        &self,
+        map: &[Vec<f64>],
+        window: Option<DynamicWindow>,
+    ) -> (Vec<OP>, usize, usize) {
         // We always start in the end of the alignment
         let mut i = map.len() - 1;
         let mut j = map[0].len() - 1;
         let mut r = vec![];
 
+        let mut minI = map.len() - 1;
+        let mut minJ = map[0].len() - 1;
+
         while i > 0 || j > 0 {
-            let mut diagcost = 0.0;
-            let mut leftcost = 0.0;
-            let mut rightcost = 0.0;
+            let mut diagcost = std::f64::INFINITY;
+            let mut leftcost = std::f64::INFINITY;
+            let mut rightcost = std::f64::INFINITY;
 
             if i > 0 && j > 0 {
                 match &window {
                     Some(window) => {
                         if window.is_in_range(i - 1, j - 1) {
                             diagcost = map[i - 1][j - 1];
-                        } else {
-                            diagcost = std::f64::INFINITY;
                         }
                     }
                     None => {
                         diagcost = map[i - 1][j - 1];
                     }
                 }
-            } else {
-                diagcost = std::f64::INFINITY;
             }
 
             if i > 0 {
@@ -63,16 +69,12 @@ pub trait DTW {
                     Some(window) => {
                         if window.is_in_range(i - 1, j) {
                             leftcost = map[i - 1][j];
-                        } else {
-                            leftcost = std::f64::INFINITY;
                         }
                     }
                     None => {
                         leftcost = map[i - 1][j];
                     }
                 }
-            } else {
-                leftcost = std::f64::INFINITY;
             }
 
             if j > 0 {
@@ -80,37 +82,42 @@ pub trait DTW {
                     Some(window) => {
                         if window.is_in_range(i, j - 1) {
                             rightcost = map[i][j - 1];
-                        } else {
-                            rightcost = std::f64::INFINITY;
                         }
                     }
                     None => {
                         rightcost = map[i][j - 1];
                     }
                 }
-            } else {
-                rightcost = std::f64::INFINITY;
             }
 
-            if diagcost <= leftcost && diagcost <= rightcost {
+            if i > 0 && j > 0 && diagcost <= leftcost && diagcost <= rightcost {
                 // The diagonal is better
                 i -= 1;
                 j -= 1;
-            } else if leftcost <= diagcost && leftcost <= rightcost {
+            } else if i > 0 && leftcost <= diagcost && leftcost <= rightcost {
                 i -= 1;
-            } else if rightcost <= diagcost && rightcost <= leftcost {
+            } else if j > 0 && rightcost <= diagcost && rightcost <= leftcost {
                 j -= 1;
-            } else if i <= j {
+            } else if j > 0 && i <= j {
                 j -= 1;
+            } else if i > 0 {
+                i -= 1;
             } else {
-                i -= 1;
+                break;
             }
 
+            if i < minI {
+                minI = i;
+            }
+
+            if j < minJ {
+                minJ = j;
+            }
             // Push the operation
             r.push((i, j));
         }
 
-        r
+        (r, minI, minJ)
     }
 }
 
@@ -216,6 +223,19 @@ impl Accesor for Vec<TokenID> {
     #[inline]
     fn size(&self) -> usize {
         self.len()
+    }
+
+    fn get_half(&self) -> Box<dyn Accesor> {
+        let mut v = Vec::with_capacity(self.len() / 2);
+
+        // We take the first of the consecutive pairs
+        for i in 0..self.len() {
+            if i % 2 == 0 {
+                v.push(self[i]);
+            }
+        }
+
+        Box::new(v)
     }
 }
 
@@ -325,102 +345,143 @@ impl DTW for FixedDTW<'_> {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct DynamicWindow {
-    min_values: Vec<i32>,
-    max_values: Vec<i32>,
+    min_values: Vec<Option<usize>>,
+    max_values: Vec<Option<usize>>,
     width: usize,
 }
 
 impl DynamicWindow {
     #[inline]
-    pub fn get_max(&self, row: usize) -> usize {
-        self.max_values[row] as usize
+    pub fn get_max(&self, row: usize) -> Option<usize> {
+        self.max_values[row]
     }
 
     #[inline]
-    pub fn get_min(&self, row: usize) -> usize {
-        self.min_values[row] as usize
+    pub fn get_min(&self, row: usize) -> Option<usize> {
+        self.min_values[row]
     }
 
     #[inline]
-    pub fn expand(&mut self, radius: i32) {
-        for i in 0..self.min_values.len() {
-            let val = self.min_values[i];
-            self.min_values[i] = 0.max(val - radius);
-            let maxval = self.max_values[i];
-            self.max_values[i] = (maxval + radius).min(self.width as i32);
-        }
-    }
-
-    #[inline]
-    pub fn get_limits(&self, row: usize) -> (usize, usize) {
+    pub fn get_limits(&self, row: usize) -> (Option<usize>, Option<usize>) {
         (self.get_min(row), self.get_max(row))
     }
 
     #[inline]
     pub fn is_in_range(&self, row: usize, col: usize) -> bool {
-        row < self.min_values.len()
-            && self.min_values[row] <= col as i32
-            && (col as i32) < self.max_values[row]
-    }
-
-    pub fn set(&mut self, row: usize, col: usize) {
-        if row >= self.min_values.len() || col > self.width {
-            return;
+        match (self.min_values[row], self.max_values[row]) {
+            (Some(min), Some(max)) => min <= col && col <= max,
+            _ => false,
         }
-
-        if self.min_values[row] == -1 && col >= 0 && col <= self.width {
-            self.min_values[row] = col as i32;
-            self.max_values[row] = col as i32;
-        } else if self.min_values[row] > col as i32 && col >= 0 && col <= self.width
-        // minimum range in the row is expanded
-        {
-            self.min_values[row] = col as i32;
-        } else if self.max_values[row] < col as i32 && col >= 0 && col <= self.width
-        // maximum range in the row is expanded
-        {
-            self.max_values[row] = col as i32;
-        } // end if
     }
 
     #[inline]
-    pub fn set_range(&mut self, min: i32, max: i32, row: usize) {
-        self.min_values[row] = min;
-        self.max_values[row] = max;
+    pub fn expand(&mut self, row: usize, newlim: usize) {
+        match (self.min_values[row], self.max_values[row]) {
+            (None, None) => {
+                self.min_values[row] = Some(newlim);
+                self.max_values[row] = Some(newlim);
+            }
+            (Some(minval), None) => {
+                if minval > newlim {
+                    self.min_values[row] = Some(newlim);
+                }
+                //self.max_values[row] = Some(newlim);
+            }
+            (None, Some(maxval)) => {
+                if maxval < newlim {
+                    self.max_values[row] = Some(newlim);
+                }
+                //self.min_values[row] = Some(newlim);
+            }
+            (Some(minval), Some(maxval)) => {
+                if maxval < newlim {
+                    self.max_values[row] = Some(newlim);
+                }
+                if minval > newlim {
+                    self.min_values[row] = Some(newlim);
+                }
+            }
+        }
+    }
+
+    #[inline]
+    pub fn set_min(&mut self, min: usize, row: usize) {
+        self.min_values[row] = Some(min);
+    }
+
+    #[inline]
+    pub fn set_max(&mut self, max: usize, row: usize) {
+        self.max_values[row] = Some(max);
+    }
+
+    #[inline]
+    pub fn set_range(&mut self, min: usize, max: usize, row: usize) {
+        self.min_values[row] = Some(min);
+        self.max_values[row] = Some(max);
     }
 
     #[inline]
     pub fn init(&mut self, height: usize) -> &mut Self {
         for i in 0..height {
-            if i < self.width {
-                self.set_range(0, (self.width + i) as i32, i);
-            } else if i >= self.width && i < height - self.width {
-                self.set_range((i - self.width) as i32, (self.width + i) as i32, i);
-            } else {
-                self.set_range((i - self.width) as i32, height as i32, i);
-            }
-            //self.set_range(0, self.width as i32, i);
+            self.set_range(0, self.width, i);
         }
         self
     }
 
-    pub fn new(height: usize, width: usize, set: bool) -> Self {
+    pub fn new(height: usize, width: usize) -> Self {
         DynamicWindow {
-            min_values: vec![if set { -1 } else { 0 }; height],
-            max_values: vec![if set { -1 } else { width as i32 }; height],
+            min_values: vec![None; height],
+            max_values: vec![None; height],
             width,
         }
+    }
+
+    pub fn replicate_prev(&mut self, i: usize) -> &mut Self {
+        self.min_values[i] = self.min_values[i - 1];
+        self.max_values[i] = self.max_values[i - 1];
+
+        self
+    }
+    pub fn replicate_last_row(&mut self) -> &mut Self {
+        let last_row = self.min_values.len() - 1;
+        let prev_last_row = last_row - 1;
+        self.min_values[last_row] = self.min_values[prev_last_row];
+        self.max_values[last_row] = self.max_values[prev_last_row];
+
+        self
+    }
+
+    pub fn display(&self) {
+        //println!("---------------");
+        for i in 0..self.min_values.len() {
+            // log::info!("{i}{}-{}", self.min_values[i], self.max_values[i]);
+            //print!("{i}");
+            for j in 0..self.min_values[i].or(Some(0)).unwrap() {
+                //print!(" ");
+            }
+            for j in
+                self.min_values[i].or(Some(0)).unwrap()..self.max_values[i].or(Some(0)).unwrap()
+            {
+                //print!("█");
+            }
+            for j in self.max_values[i].or(Some(self.width)).unwrap()..self.width {
+                //print!(" ");
+            }
+            //println!("");
+        }
+        //println!("--------------")
     }
 }
 
 pub struct WindowedDTW<'a> {
-    window: usize,
+    window: DynamicWindow,
     distance: &'a dyn Distance,
 }
 
 impl<'a> WindowedDTW<'a> {
-    pub fn new(window: usize, distance: &'a dyn Distance) -> Self {
+    pub fn new(window: DynamicWindow, distance: &'a dyn Distance) -> Self {
         WindowedDTW { window, distance }
     }
 }
@@ -432,102 +493,82 @@ impl<'a> DTW for WindowedDTW<'a> {
         let mut dtw = vec![vec![std::f64::INFINITY; chain2.size() + 1]; chain1.size() + 1];
         let mut dtw = dtw.as_mut_slice();
 
-        let mut dynamic_window = DynamicWindow {
-            min_values: vec![0; chain1.size() + 1],
-            max_values: vec![self.window as i32; chain1.size() + 1],
-            width: self.window,
-        };
-        // Initialize the min part of the range
-        let mut dynamic_window = dynamic_window.init(chain1.size() + 1);
-
         for i in 0..=chain1.size() {
-            let (min, max) = dynamic_window.get_limits(i);
-            for j in min..max.min(chain2.size() + 1) {
-                // patch here ?
-                match (i, j) {
-                    (0, 0) => {
-                        dtw[0][0] = if dynamic_window.is_in_range(0, 0) {
-                            0.0
-                        } else {
-                            std::f64::INFINITY
+            let (min, max) = self.window.get_limits(i);
+
+            match (min, max) {
+                (Some(min), Some(max)) => {
+                    for j in min..=max.min(chain2.size()) {
+                        // patch here ?
+
+                        match (i, j) {
+                            (0, 0) => dtw[0][0] = 0.0,
+                            // First column
+                            (0, _) => dtw[0][j] = self.distance.gap_cost() * j as f64,
+                            // First row
+                            (i, 0) => dtw[i][0] = self.distance.gap_cost() * i as f64,
+                            _ => {
+                                let a = chain1.get(i - 1);
+                                let b = chain2.get(j - 1);
+
+                                // If i - 1, j - 1 are outside the window then return INFINITE
+                                let diagcost = if self.window.is_in_range(i - 1, j - 1)
+                                    || (i - 1) <= chain1.size()
+                                    || (j - 1) <= chain2.size()
+                                {
+                                    self.distance.distance(a, b) + dtw[i - 1][j - 1]
+                                } else {
+                                    std::f64::INFINITY / 2.0
+                                };
+
+                                let leftcost = if self.window.is_in_range(i - 1, j)
+                                    || (i - 1) <= chain1.size()
+                                    || (j) <= chain2.size()
+                                {
+                                    self.distance.gap_cost() + dtw[i - 1][j]
+                                } else {
+                                    std::f64::INFINITY / 2.0
+                                };
+
+                                let rightcost = if self.window.is_in_range(i, j - 1)
+                                    || (i) <= chain1.size()
+                                    || (j - 1) <= chain2.size()
+                                {
+                                    self.distance.gap_cost() + dtw[i][j - 1]
+                                } else {
+                                    std::f64::INFINITY / 2.0
+                                };
+
+                                let mini = diagcost.min(leftcost).min(rightcost);
+
+                                dtw[i][j] = mini;
+                            }
                         }
                     }
-                    // First column
-                    (0, _) => {
-                        dtw[0][j] = if dynamic_window.is_in_range(0, j) {
-                            self.distance.gap_cost() * j as f64
-                        } else {
-                            std::f64::INFINITY
-                        }
-                    }
-                    // First row
-                    (i, 0) => {
-                        dtw[i][0] = if dynamic_window.is_in_range(i, 0) {
-                            self.distance.gap_cost() * i as f64
-                        } else {
-                            std::f64::INFINITY
-                        }
-                    }
-                    _ => {
-                        let a = chain1.get(i - 1);
-                        let b = chain2.get(j - 1);
-
-                        // If i - 1, j - 1 are outside the window then return INFINITE
-                        let diagcost = if dynamic_window.is_in_range(i - 1, j - 1) {
-                            self.distance.distance(a, b) + dtw[i - 1][j - 1]
-                        } else {
-                            std::f64::INFINITY
-                        };
-
-                        let leftcost = if dynamic_window.is_in_range(i - 1, j) {
-                            self.distance.gap_cost() + dtw[i - 1][j]
-                        } else {
-                            std::f64::INFINITY
-                        };
-
-                        let rightcost = if dynamic_window.is_in_range(i, j - 1) {
-                            self.distance.gap_cost() + dtw[i][j - 1]
-                        } else {
-                            std::f64::INFINITY
-                        };
-
-                        //let diagcost = self.distance.distance(a, b) + dtw[i - 1][j - 1];
-                        // let leftcost = self.distance.gap_cost() + dtw[i - 1][j];
-                        // let rightcost = self.distance.gap_cost() + dtw[i][j - 1];
-
-                        let mini = diagcost.min(leftcost).min(rightcost);
-
-                        dtw[i][j] = mini;
-                    }
+                }
+                _ => {
+                    // Do nothing
                 }
             }
         }
 
-        // Write the bidimensional matrix
-        /*for i in 0..=chain1.size() {
-            for j in 0..=chain2.size() {
-                print!("{:3} ", dtw[i][j]);
+        /*
+        for i in 0..dtw.len() {
+            for j in 0..dtw[i].len() {
+                //print!("{} ", dtw[i][j]);
             }
-            println!();
+            ://println!();
         }*/
 
-        let cost = dtw[chain1.size()][chain2.size()];
-        let path = self.get_warp_path(&dtw, Some(dynamic_window.clone()));
+        let cost = dtw[chain1.size() - 1][chain2.size() - 1];
+        let path = self.get_warp_path(&dtw, Some(self.window.clone()));
 
         (cost, Some(path))
     }
 }
 
-trait AccesorAllocator<T>
-where
-    T: Accesor,
-{
-    fn allocate(&self, size: usize) -> T;
-
-    fn set(&self, idx: usize, val: TokenID, accesor: &mut T);
-}
-
-fn reduce_by_half<'a, T>(allocator: &'a dyn AccesorAllocator<T>, accessor: &mut T) -> T
+/*
+fn reduce_by_half<'a, T>(allocator: &'a dyn AccesorAllocator<T>, accessor: &mut Box<T>) -> T
 where
     T: Accesor,
 {
@@ -537,68 +578,177 @@ where
         allocator.set(i, accessor.get(i * 2), &mut r);
     }
     r
-}
+}*/
 
-pub struct InMemoryVectorAllocator;
-
-impl AccesorAllocator<Vec<TokenID>> for InMemoryVectorAllocator {
-    fn allocate(&self, size: usize) -> Vec<TokenID> {
-        vec![0; size]
-    }
-
-    fn set(&self, idx: usize, val: TokenID, accesor: &mut Vec<TokenID>) {
-        accesor[idx] = val;
-    }
-}
-
-pub struct FastDTW<'a, T> {
+pub struct FastDTW<'a> {
     distance: &'a dyn Distance,
     radius: usize,
     default_dtw: &'a dyn DTW,
     min_size: usize,
-    accesor_allocator: &'a dyn AccesorAllocator<T>,
 }
 
-impl<'a, T> FastDTW<'a, T> {
+impl<'a> FastDTW<'a> {
     pub fn new(
         distance: &'a dyn Distance,
         radius: usize,
         min_size: usize,
         default_dtw: &'a dyn DTW,
-        accesor_allocator: &'a dyn AccesorAllocator<T>,
-    ) -> FastDTW<'a, T> {
+    ) -> FastDTW<'a> {
         FastDTW {
             distance,
             radius,
             min_size,
             default_dtw,
-            accesor_allocator,
         }
+    }
+
+    // expands the path
+    fn expand(
+        ops: Vec<OP>,
+        radius: usize,
+        len1: usize,
+        len2: usize,
+        op_count: usize,
+        mini: usize,
+        minj: usize,
+    ) -> DynamicWindow {
+        let mut dynamic_window = DynamicWindow::new(len2 + 1, len1);
+        //let mut dynamic_window = dynamic_window.init(len1);
+
+        let mut lastwarpedi = usize::MAX;
+        let mut lastwarpedj = usize::MAX;
+
+        let blocksize = 2;
+        let mut currenti = mini;
+        let mut currentj = minj;
+
+        //println!("{} {}", len1, len2);
+        for i in (0..op_count).rev() {
+            let (warpedi, warpedj) = ops[i];
+            //println!("{} {}", warpedi + 1, warpedj + 1);
+
+            if warpedi > lastwarpedi {
+                currenti += blocksize;
+            }
+
+            if warpedj > lastwarpedj {
+                currentj += blocksize;
+            }
+
+            if (warpedj > lastwarpedj) && (warpedi > lastwarpedi) {
+                dynamic_window.expand(currenti - 1, currentj);
+                dynamic_window.expand(currenti, currentj - 1);
+            }
+
+            for x in 0..blocksize {
+                dynamic_window.expand(currenti + x, currentj);
+                dynamic_window.expand(currenti + x, currentj + blocksize - 1);
+            }
+
+            lastwarpedi = warpedi;
+            lastwarpedj = warpedj;
+        }
+
+        if len2 % 2 == 1 && len2 > 0 {
+            dynamic_window.replicate_last_row();
+            // Replicate the last column
+            //dynamic_window.expand(len2 - 1, dynamic_window.get_min(len2 - 2).or(None).unwrap());
+            //dynamic_window.expand(len2 - 1, dynamic_window.get_max(len2 - 2).or(None).unwrap());
+        }
+
+        log::info!("Scaling");
+        dynamic_window.display();
+        //println!();
+
+        let mut scaled = DynamicWindow::new(len2 + 1, len1);
+        //let mut scaled = scaled.init(len2 + 1);
+
+        for i in 0..len2 + 1 {
+            let min_col = dynamic_window.get_min(i);
+            let max_col = dynamic_window.get_max(i);
+
+            match (min_col, max_col) {
+                (Some(min_col), Some(max_col)) => {
+                    let up_row = 0.max(i as i32 - radius as i32);
+                    let down_row = len1.min(i + radius);
+
+                    scaled.expand(i, min_col);
+                    scaled.expand(i, max_col);
+
+                    let (sub, s) = min_col.overflowing_sub(radius);
+
+                    if s {
+                        scaled.expand(i, 0);
+                    } else {
+                        scaled.expand(i, sub);
+                    }
+
+                    let (val, s) = max_col.overflowing_add(radius);
+                    if s {
+                        scaled.expand(i, len1);
+                    } else {
+                        scaled.expand(i, len1.min(val));
+                    }
+
+                    for j in (up_row as usize..=i).rev() {
+                        scaled.expand(j, max_col);
+                        scaled.expand(j, scaled.get_min(j).or(None).unwrap());
+                    }
+
+                    for j in i..=down_row {
+                        scaled.expand(j, min_col);
+                        scaled.expand(j, scaled.get_max(j).or(None).unwrap());
+                    }
+                }
+                (_, _) => {
+                    scaled.replicate_prev(i);
+                }
+            }
+
+            //scaled.set(i, max_col.overflowing_add(radius).min(len1).0);
+        }
+
+        log::info!("Grown");
+        scaled.display();
+
+        scaled.clone()
     }
 }
 
-impl<T> DTW for FastDTW<'_, T> {
+impl DTW for FastDTW<'_> {
     fn calculate(&self, chain1: Box<dyn Accesor>, chain2: Box<dyn Accesor>) -> DTWResult {
-        todo!();
-        /*
         if chain1.size() <= self.min_size || chain2.size() <= self.min_size {
+            log::info!("Min trace size reached in FastDTW");
             return self.default_dtw.calculate(chain1, chain2);
         }
 
-
-        let chain1_half = reduce_by_half(self.accesor_allocator, &mut chain1);
-        let chain2_half = reduce_by_half(self.accesor_allocator, &mut chain2);
+        let chain1_half = chain1.get_half();
+        let chain2_half = chain2.get_half();
 
         // TODO move this to a queue. Yet, we do not have that many stack calls, log(n) at most
-        let (cost, path) = self.calculate(chain1_half, chain2_half);
-
+        let (_, path) = self.calculate(chain1_half, chain2_half);
 
         // Expand the path
-        //
 
+        if let Some((path, mini, minj)) = path {
+            log::info!("{:?}", path);
+            let opcount = path.len();
+            let window = FastDTW::expand(
+                path,
+                self.radius,
+                chain1.size(),
+                chain2.size(),
+                opcount,
+                mini,
+                minj,
+            );
+
+            log::info!("{:?}", window);
+            return WindowedDTW::new(window, self.distance).calculate(chain1, chain2);
+        }
 
         // expand
-        todo!()*/
+        panic!("This point should not be reached")
     }
 }
 
@@ -632,13 +782,15 @@ mod tests {
     }
 
     #[test]
-    fn testwindow() {
+    fn testfast() {
         assert_eq!(2 + 2, 4);
         let distance = STRACDistance::default();
-        let dtw = WindowedDTW::new(3, &distance);
-        let chain1 = Box::new(vec![1, 2, 3, 5, 2, 3, 4]);
-        let chain2 = Box::new(vec![1, 2, 4, 6, 7, 1, 2]);
-        let (result, ops) = dtw.calculate(chain1, chain2);
+        let dtw = StandardDTW::new(&distance);
+
+        let fastdtw = FastDTW::new(&distance, 2, 100, &dtw);
+        let chain1 = Box::new(vec![1, 2, 3, 5, 1, 2, 3]);
+        let chain2 = Box::new(vec![1, 2, 4, 5, 6, 7, 8]);
+        let (result, ops) = fastdtw.calculate(chain1, chain2);
         println!("{:?}", ops);
         assert_eq!(result, 8.0);
     }

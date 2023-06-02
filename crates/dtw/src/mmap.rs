@@ -19,4 +19,13 @@ impl Accesor for MMapWrapper {
     fn size(&self) -> usize {
         self.size
     }
+
+    fn get_half(&self) -> Box<dyn Accesor> {
+        let ptr = unsafe { self.ptr.lock().unwrap().add(12) };
+        let size = self.size / 2;
+        Box::new(MMapWrapper {
+            size,
+            ptr: Arc::new(Mutex::new(ptr)),
+        })
+    }
 }

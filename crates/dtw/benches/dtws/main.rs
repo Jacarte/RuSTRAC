@@ -71,7 +71,7 @@ fn bench_dtws(c: &mut Criterion) {
         })
     });
 
-    group.bench_function(BenchmarkId::new("window dtw", 0), |b| {
+    group.bench_function(BenchmarkId::new("fastdtw", 0), |b| {
         b.iter_custom(|iters| {
             let mut cumulative_duration = Duration::new(0, 0);
             // Create two arrays full of random elements
@@ -80,10 +80,12 @@ fn bench_dtws(c: &mut Criterion) {
 
             for _ in 0..iters {
                 let start = std::time::Instant::now();
-                let distancefunc = dtw::dtw::STRACDistance::default();
-                // We include the instantiation of the DTWImpl in the benchmark
-                let dtw = dtw::dtw::WindowedDTW::new(3, &distancefunc);
-                let _distance = dtw.calculate(Box::new(x.clone()), Box::new(y.clone()));
+                let distance = STRACDistance::default();
+                let dtw = StandardDTW::new(&distance);
+
+                let fastdtw = FastDTW::new(&distance, 2, 100, &dtw);
+
+                let _distance = fastdtw.calculate(Box::new(x.clone()), Box::new(y.clone()));
 
                 cumulative_duration += start.elapsed();
             }

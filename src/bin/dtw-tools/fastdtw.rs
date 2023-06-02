@@ -1,5 +1,6 @@
-
 use clap::Parser;
+use dtw_core::dtw::FastDTW;
+use dtw_core::dtw::StandardDTW;
 use dtw_core::dtw::DTW;
 
 /// Standard DTW implementation.
@@ -10,6 +11,9 @@ pub struct Opts {
 
     #[arg(long, default_value = "2")]
     window_size: usize,
+
+    #[arg(long, default_value = "100")]
+    min_dtw_size: usize,
 }
 
 impl Opts {
@@ -28,9 +32,10 @@ impl Opts {
         distance: Box<dyn dtw::dtw::Distance>,
     ) -> dtw::dtw::DTWResult {
         // Initialize the DTWStandard
-        let _general = &self.io;
+        let dtw = StandardDTW::new(&*distance);
 
-        let dtw = dtw::dtw::FixedDTW::new(&*distance);
-        dtw.calculate(tr1, tr2)
+        let fastdtw = FastDTW::new(&*distance, self.window_size, self.min_dtw_size, &dtw);
+
+        fastdtw.calculate(tr1, tr2)
     }
 }

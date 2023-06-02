@@ -2,7 +2,7 @@
 //
 extern crate termcolor;
 use std::path::PathBuf;
-use termcolor::{ColorChoice};
+use termcolor::ColorChoice;
 
 #[derive(clap::Parser, Clone)]
 pub struct GeneralOpts {
@@ -60,6 +60,10 @@ pub struct InputOutput {
     /// The cost of aligning two tokens that mismatch
     #[arg(long)]
     pub missmatch_cost: Option<f64>,
+
+    /// Token separator
+    #[arg(long, default_value = "\n")]
+    pub separator: String,
 }
 
 #[derive(clap::Parser, Clone)]

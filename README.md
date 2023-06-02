@@ -31,6 +31,7 @@ Reimplementation of STRAC in Rust.
 - [ ] Clippy and fmt in CI
 - [ ] Automatic package deploy in cargo
 - [ ] Doc generation
+- [ ] Errorify ?
 
 ## Goals:
 
