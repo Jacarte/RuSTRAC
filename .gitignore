@@ -2,3 +2,6 @@ target
 
 # trace files
 *.trace.bin
+*.txt
+test.bin
+corpus

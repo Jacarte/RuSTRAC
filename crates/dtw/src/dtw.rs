@@ -378,6 +378,9 @@ impl DynamicWindow {
 
     #[inline]
     pub fn expand(&mut self, row: usize, newlim: usize) {
+        if row >= self.min_values.len() {
+            return;
+        }
         match (self.min_values[row], self.max_values[row]) {
             (None, None) => {
                 self.min_values[row] = Some(newlim);
@@ -454,24 +457,24 @@ impl DynamicWindow {
     }
 
     pub fn display(&self) {
-        //println!("---------------");
+        println!("---------------");
         for i in 0..self.min_values.len() {
             // log::info!("{i}{}-{}", self.min_values[i], self.max_values[i]);
-            //print!("{i}");
+            print!("{i}");
             for j in 0..self.min_values[i].or(Some(0)).unwrap() {
-                //print!(" ");
+                print!(" ");
             }
             for j in
                 self.min_values[i].or(Some(0)).unwrap()..self.max_values[i].or(Some(0)).unwrap()
             {
-                //print!("█");
+                print!("█");
             }
             for j in self.max_values[i].or(Some(self.width)).unwrap()..self.width {
-                //print!(" ");
+                print!(" ");
             }
-            //println!("");
+            println!("");
         }
-        //println!("--------------")
+        println!("--------------")
     }
 }
 
@@ -656,7 +659,7 @@ impl<'a> FastDTW<'a> {
             //dynamic_window.expand(len2 - 1, dynamic_window.get_max(len2 - 2).or(None).unwrap());
         }
 
-        log::info!("Scaling");
+        // log::info!("Scaling");
         dynamic_window.display();
         //println!();
 
@@ -708,8 +711,8 @@ impl<'a> FastDTW<'a> {
             //scaled.set(i, max_col.overflowing_add(radius).min(len1).0);
         }
 
-        log::info!("Grown");
-        scaled.display();
+        // log::info!("Grown");
+        // scaled.display();
 
         scaled.clone()
     }
@@ -718,8 +721,16 @@ impl<'a> FastDTW<'a> {
 impl DTW for FastDTW<'_> {
     fn calculate(&self, chain1: Box<dyn Accesor>, chain2: Box<dyn Accesor>) -> DTWResult {
         if chain1.size() <= self.min_size || chain2.size() <= self.min_size {
-            log::info!("Min trace size reached in FastDTW");
-            return self.default_dtw.calculate(chain1, chain2);
+            log::info!(
+                "Min trace size reached in FastDTW {} {}",
+                chain1.size(),
+                chain2.size()
+            );
+            let r = self.default_dtw.calculate(chain1, chain2);
+
+            log::info!("Returning from basic DTW");
+
+            return r;
         }
 
         let chain1_half = chain1.get_half();
@@ -731,7 +742,7 @@ impl DTW for FastDTW<'_> {
         // Expand the path
 
         if let Some((path, mini, minj)) = path {
-            log::info!("{:?}", path);
+            log::info!("Windowed fdtw ");
             let opcount = path.len();
             let window = FastDTW::expand(
                 path,
@@ -793,6 +804,153 @@ mod tests {
         let (result, ops) = fastdtw.calculate(chain1, chain2);
         println!("{:?}", ops);
         assert_eq!(result, 8.0);
+    }
+
+    #[test]
+    fn testfast2() {
+        assert_eq!(2 + 2, 4);
+        let distance = STRACDistance::default();
+        let dtw = StandardDTW::new(&distance);
+
+        let fastdtw = FastDTW::new(&distance, 2, 10, &dtw);
+        let chain2 = Box::new(vec![
+            18446744071612399615,
+            2692975965417482751,
+            2676586395008836901,
+            18446743133734905125,
+            18446744072261074943,
+            12225488737194213375,
+            18446648525771614633,
+            4991472727824007167,
+            288230376151711743,
+            18446744073703912105,
+            18446648713712893951,
+            6872316420869324799,
+            2676586395008836901,
+            18385141895277126949,
+            18446744073709551615,
+            4557430888798879743,
+            4557430888798830399,
+            4557430888798830399,
+            3026418949580341055,
+            18446744073709551615,
+            18446648673895972863,
+            18422331914565189631,
+            12225307061520433151,
+            18446744073709551615,
+            18446744073703867717,
+            2676650416768245673,
+            2676586395008836901,
+            18446744070037775653,
+            18446744073709551615,
+            4557430888798830399,
+            4557430888798830399,
+            4557430888798830399,
+            18446743154586550271,
+            18446744073709551615,
+            12225489209634929663,
+            18446744071688380255,
+            6893227250828290363,
+            2676586395012652895,
+            2676586395008836901,
+            2089670227099909925,
+            18446744073709551615,
+            18446744073709496831,
+            12197231332752883711,
+            6872398473367388159,
+            2676586395008851807,
+            2676586395008836901,
+            18446744073709551615,
+            18392488947314851839,
+            18446718784928088063,
+            18446744073709551615,
+            18446743133734905125,
+            18446744073709551615,
+            4557430888798830399,
+            4557430888798830399,
+            18446744070475693887,
+            4557430888798879743,
+            4557430888798830399,
+            4557430888798830399,
+            3026418949580341055,
+            18446744073709551615,
+            12225488738637053951,
+            2692975965417482665,
+            2676586395008836901,
+            18446743133734905125,
+            18446744073694674943,
+            18446508778221207551,
+        ]);
+        let chain1 = Box::new(vec![
+            18446744073709551615,
+            2676827028518338559,
+            18446743133734905125,
+            18446744073709551615,
+            4557430888798830399,
+            18446743245841973055,
+            18446743274845634559,
+            12225489207950704639,
+            12249790986447749119,
+            1849195666009074089,
+            18446744073709529369,
+            4557431168072762879,
+            4557430888798830399,
+            4557430888798830399,
+            18386508428693421887,
+            18446744073709551615,
+            9765923333140381695,
+            18446611614896981895,
+            18394389728041369599,
+            12225378830423949311,
+            18446744073709551529,
+            12225489209634929577,
+            1873497191583055871,
+        ]);
+        let (result, ops) = fastdtw.calculate(chain1, chain2);
+        println!("{:?}", ops);
+        assert_eq!(result, 73.0);
+    }
+
+    #[test]
+    fn testfast3() {
+        assert_eq!(2 + 2, 4);
+        let distance = STRACDistance::default();
+        let dtw = StandardDTW::new(&distance);
+
+        let fastdtw = FastDTW::new(&distance, 2, 10, &dtw);
+        let chain2 = Box::new(vec![
+            12184914412422823935,
+            5044031582654955519,
+            18374686479671601477,
+            18446744072261052675,
+            18422331914565189631,
+            6872316740139745279,
+            6872316169532286303,
+            2676586395008836901,
+            18385141895277126949,
+            2676827028518338559,
+            2676586395008836901,
+            18446744073709551615,
+            18446744073709551615,
+        ]);
+        let chain1 = Box::new(vec![
+            6872398473367388159,
+            2676586395008851807,
+            2676586395008836901,
+            18446744073709551615,
+            4557430892032688127,
+            4557430888798830399,
+            6872398102544727871,
+            2676586395008851807,
+            2676586395008836901,
+            18382849253996232703,
+            18446744073709551615,
+            18446744073323675433,
+            18446744073709551615,
+        ]);
+        let (result, ops) = fastdtw.calculate(chain1, chain2);
+        println!("{:?}", ops);
+        assert_eq!(result, 18.0);
     }
 
     #[test]

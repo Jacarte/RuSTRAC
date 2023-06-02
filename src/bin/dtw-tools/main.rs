@@ -88,18 +88,18 @@ fn main() {
     let trace2 = trace2.split('\n').map(String::from).collect::<Vec<_>>();
 
     // Swap if they are larger
-    let (trace1, trace2) = if trace1.len() > trace2.len() {
-        (trace2, trace1)
-    } else {
-        (trace1, trace2)
-    };
-
     log::debug!("Generating bin traces");
 
     // Get the name of the file
     let argsclone = args.clone();
     let name1 = argsclone.io().input1.file_name().unwrap().to_str().unwrap();
     let name2 = argsclone.io().input2.file_name().unwrap().to_str().unwrap();
+    let (trace1, trace2, name1, name2) = if trace2.len() > trace1.len() {
+        (trace2, trace1, name2, name1)
+    } else {
+        (trace1, trace2, name1, name2)
+    };
+
     let n1clone = name1.clone();
     let n2clone = name2.clone();
 
