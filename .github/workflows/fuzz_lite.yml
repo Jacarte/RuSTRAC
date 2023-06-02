@@ -1,0 +1,61 @@
+ame: CI
+on:
+  pull_request:
+    branches: [main]
+
+# Cancel any in-flight jobs for the same PR/branch so there's only one active
+# at a time
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+
+  fuzz:
+    name: Fuzz
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: true
+        token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+    - name: Install Rust
+      run: rustup update nightly && rustup default nightly && rustup +nightly target add wasm32-unknown-unknown && rustup +stable target add wasm32-unknown-unknown
+    - run: cargo install cargo-fuzz
+
+
+  pr:
+    name: 10 mins fuzz
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-${{ matrix.sanitizer }}-${{ github.ref }}
+      cancel-in-progress: true
+    strategy:
+      fail-fast: false
+      matrix:
+        sanitizer:
+        - address
+    steps:
+    - name: Build Fuzzers
+      id: build
+      uses: google/clusterfuzzlite/actions/build_fuzzers@v1
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        language: rust
+        sanitizer: ${{ matrix.sanitizer }}
+      env:
+        BUILD: 1
+    - name: Run Fuzzers
+      id: run
+      uses: google/clusterfuzzlite/actions/run_fuzzers@v1
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        fuzz-seconds: 600
+        mode: 'code-change'
+        sanitizer: ${{ matrix.sanitizer }}
+        storage-repo: https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/filecoin-project/ref-fvm-fuzz-corpora.git
+        storage-repo-branch-coverage: gh-pages
+        storage-repo-branch: master
+      env:
+        RUST_LOG: "trace"
