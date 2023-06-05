@@ -1,5 +1,4 @@
-# RuSTRAC
-
+# RuSTRAC [![Fuzz](https://github.com/Jacarte/RuSTRAC/actions/workflows/fuzz_lite.yml/badge.svg)](https://github.com/Jacarte/RuSTRAC/actions/workflows/fuzz_lite.yml) [![CI](https://github.com/Jacarte/RuSTRAC/actions/workflows/ci.yml/badge.svg)](https://github.com/Jacarte/RuSTRAC/actions/workflows/ci.yml) [![Build Assets](https://github.com/Jacarte/RuSTRAC/actions/workflows/ci_build.yml/badge.svg)](https://github.com/Jacarte/RuSTRAC/actions/workflows/ci_build.yml)
 
 Reimplementation of STRAC in Rust.
 
