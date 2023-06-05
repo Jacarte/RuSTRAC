@@ -656,7 +656,6 @@ impl<'a> FastDTW<'a> {
             dynamic_window.replicate_last_row();
         }
 
-
         let mut scaled = DynamicWindow::new(len2 + 1, len1);
 
         for i in 0..len2 + 1 {
@@ -703,7 +702,6 @@ impl<'a> FastDTW<'a> {
 
             //scaled.set(i, max_col.overflowing_add(radius).min(len1).0);
         }
-
 
         scaled.clone()
     }

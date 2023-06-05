@@ -110,7 +110,8 @@ impl<'a> TraceEncoder<'a> for ToMemoryParser {
 
     fn deserialize(&self, from: PathBuf) -> Box<dyn Accesor> {
         // Use rustix to mmap file
-        #[cfg(target_arch="unix")]{
+        #[cfg(target_arch = "unix")]
+        {
             let file = std::fs::File::open(from).expect("failed to open file");
             let len = file.metadata().expect("failed to get file metadata").len();
 
@@ -144,8 +145,9 @@ impl<'a> TraceEncoder<'a> for ToMemoryParser {
             };
 
             Box::new(wrapper)
-            }
-            #[cfg(not(target_arch="unix"))]{
+        }
+        #[cfg(not(target_arch = "unix"))]
+        {
             // Wasm32 probably
             // Windows also
             let f = std::fs::File::open(from).expect("File could not be opened");
