@@ -44,3 +44,6 @@ jobs:
       - name: Tests
         run: cargo test -p dtw
 
+      - name: Benches
+        run: cargo bench -p dtw
+
