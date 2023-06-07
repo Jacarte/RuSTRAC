@@ -731,7 +731,7 @@ impl DTW for FastDTW<'_> {
         // Expand the path
 
         if let Some((path, mini, minj)) = path {
-            log::info!("Windowed fdtw ");
+            log::info!("Windowed fdtw {} {}", chain1.size(), chain2.size());
             let opcount = path.len();
             let window = FastDTW::expand(
                 path,
@@ -743,7 +743,7 @@ impl DTW for FastDTW<'_> {
                 minj,
             );
 
-            log::info!("{:?}", window);
+            // log::info!("{:?}", window);
             return WindowedDTW::new(window, self.distance).calculate(chain1, chain2);
         }
 

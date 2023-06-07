@@ -110,9 +110,9 @@ impl<'a> TraceEncoder<'a> for ToMemoryParser {
 
     fn deserialize(&self, from: PathBuf) -> Box<dyn Accesor> {
         // Use rustix to mmap file
-        #[cfg(target_arch = "unix")]
+        #[cfg(target_arch = "x86_64")]
         {
-            let file = std::fs::File::open(from).expect("failed to open file");
+            let file = std::fs::File::open(from.clone()).expect("failed to open file");
             let len = file.metadata().expect("failed to get file metadata").len();
 
             let len = usize::try_from(len).expect("file too large to map");
@@ -139,14 +139,19 @@ impl<'a> TraceEncoder<'a> for ToMemoryParser {
             let count = u32::from_le_bytes([count[0], count[1], count[2], count[3]]);
 
             use crate::mmap::*;
+            let fr = from.clone();
+            let basename = fr.file_name().unwrap().to_str().unwrap();
             let wrapper = MMapWrapper {
+                name: basename.into(),
+                // The first trace cration should be temporary
+                tmp: false,
                 size: count as usize,
-                ptr: std::sync::Arc::new(std::sync::Mutex::new(unsafe { ptr })),
+                ptr: std::sync::Arc::new(std::sync::Mutex::new(ptr)),
             };
 
             Box::new(wrapper)
         }
-        #[cfg(not(target_arch = "unix"))]
+        #[cfg(not(target_arch = "x86_64"))]
         {
             // Wasm32 probably
             // Windows also
@@ -194,6 +199,90 @@ mod tests {
             String::from("add 2,2"),
             String::from("sub 2 2"),
             String::from("mul 2,2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
+            String::from("sub 2 2"),
             String::from("sub 2 2"),
             String::from("sub 2 2"),
             String::from("sub 2 2"),

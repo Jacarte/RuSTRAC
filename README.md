@@ -28,6 +28,7 @@ Reimplementation of STRAC in Rust.
 - [x] Export alignment
 - [x] Writing the trace in a custom bin file for faster reading.
 - [x] Clippy and fmt in CI
+- [ ] SIMD target superoptimization.
 - [ ] Automatic package deploy in cargo
 - [ ] Doc generation
 - [ ] Errorify ?

@@ -7,7 +7,7 @@ use clap::Parser;
 use dtw_core::parsing::TraceEncoder;
 use std::io::Write;
 use std::path::PathBuf;
-
+use std::borrow::Borrow;
 // This code is copied and transformed from the wasm-tools repo
 //
 //
@@ -110,11 +110,11 @@ fn main() {
     let n1clone = name1.clone();
     let n2clone = name2.clone();
 
-    let r1 = encoder.create_bin(
+    let _ = encoder.create_bin(
         trace1,
         PathBuf::from(format!("{}.trace.bin", name1.clone())),
     );
-    let r2 = encoder.create_bin(
+    let _ = encoder.create_bin(
         trace2,
         PathBuf::from(format!("{}.trace.bin", name2.clone())),
     );
@@ -130,8 +130,15 @@ fn main() {
     let gap_symbol = args.io().output.gap_symbol.clone();
 
     let distance = Box::new(distance);
-    let (distance, wp) = args.run(Box::new(r1.clone()), Box::new(r2.clone()), distance);
+    // Load the bins as MMAP
+    let r1 = encoder.deserialize(PathBuf::from(format!("{}.trace.bin", name1)));
+    let r2 = encoder.deserialize(PathBuf::from(format!("{}.trace.bin", name2)));
 
+    
+
+    let (distance, wp) = args.run(r1, r2, distance);
+
+    log::debug!("Generating alignment file");
     // Now we create the alignment using the warping path
     if let Some((wp, _, _)) = wp {
         if let Some(pb) = output_alignment {
@@ -168,13 +175,17 @@ fn main() {
             // writeln!(file, "{}{} | {}{}", pad1, n1clone, n2clone, pad2).unwrap();
             // writeln!(file, "{}", div).unwrap();
 
+            let r1 = encoder.deserialize(PathBuf::from(format!("{}.trace.bin", name1)));
+            let r2 = encoder.deserialize(PathBuf::from(format!("{}.trace.bin", name2)));
+                 
+
             for (i1, i2) in tr1p.iter().rev().zip(tr2p.iter().rev()) {
                 match (i1, i2) {
                     (Some(i1), Some(i2)) => {
-                        let t1 = r1.get(*i1).unwrap();
-                        let t2 = r2.get(*i2).unwrap();
-                        let t1 = encoder.id_to_token(*t1);
-                        let t2 = encoder.id_to_token(*t2);
+                        let t1 = r1.get(*i1);
+                        let t2 = r2.get(*i2);
+                        let t1 = encoder.id_to_token(t1);
+                        let t2 = encoder.id_to_token(t2);
                         let eq = if t1 == t2 { "|" } else { "!" };
                         // align the tokens
                         let pad1 = " ".repeat(encoder.get_largest_token() - t1.len());
@@ -182,8 +193,8 @@ fn main() {
                         writeln!(file, "{}{} {} {}{}", pad1, t1, eq, t2, pad2).unwrap();
                     }
                     (None, Some(i2)) => {
-                        let t2 = r2.get(*i2).unwrap();
-                        let t2 = encoder.id_to_token(*t2);
+                        let t2 = r2.get(*i2);
+                        let t2 = encoder.id_to_token(t2);
 
                         let pad = " ".repeat(encoder.get_largest_token() - t2.len());
                         let pad1 = " ".repeat(encoder.get_largest_token() - 1);
@@ -191,8 +202,8 @@ fn main() {
                         writeln!(file, "{}{} > {}{}", pad1, gap_symbol, t2, pad).unwrap();
                     }
                     (Some(i1), None) => {
-                        let t1 = r1.get(*i1).unwrap();
-                        let t1 = encoder.id_to_token(*t1);
+                        let t1 = r1.get(*i1);
+                        let t1 = encoder.id_to_token(t1);
                         let pad = " ".repeat(encoder.get_largest_token() - t1.len());
 
                         let pad1 = " ".repeat(encoder.get_largest_token() - 1);

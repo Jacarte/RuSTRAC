@@ -4,4 +4,9 @@ target
 *.trace.bin
 *.txt
 test.bin
+*bin.*.bin
+
+
+# fuzzing files
 corpus
+artifacts

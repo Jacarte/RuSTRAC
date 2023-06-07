@@ -1,4 +1,4 @@
 pub mod dtw;
-#[cfg(unix)]
+#[cfg(target_arch = "x86_64")]
 pub mod mmap;
 pub mod parsing;
