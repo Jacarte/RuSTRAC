@@ -1,10 +1,7 @@
 #![no_main]
-use arbitrary::{Arbitrary, Error, Unstructured};
 use dtw::dtw::*;
 use libfuzzer_sys::*;
 use std::sync::atomic::AtomicI64;
-use std::sync::atomic::Ordering;
-use std::{fmt::Debug, fs};
 
 pub static COMPARED_DIFF: AtomicI64 = AtomicI64::new(0);
 pub static SUM_DIFF: AtomicI64 = AtomicI64::new(0);
@@ -30,7 +27,6 @@ fuzz_target!(|data: (Vec<usize>, Vec<usize>, usize, usize)| {
     log::debug!("rad {}", rad);
     log::debug!("th {}", th);
 
-    let start = std::time::Instant::now();
     let distance = STRACDistance::default();
     let dtw = StandardDTW::new(&distance);
 

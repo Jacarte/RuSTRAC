@@ -43,8 +43,8 @@ pub trait DTW {
         let mut j = map[0].len() - 1;
         let mut r = vec![];
 
-        let mut minI = map.len() - 1;
-        let mut minJ = map[0].len() - 1;
+        let mut mini = map.len() - 1;
+        let mut minj = map[0].len() - 1;
 
         while i > 0 || j > 0 {
             let mut diagcost = std::f64::INFINITY;
@@ -106,18 +106,18 @@ pub trait DTW {
                 break;
             }
 
-            if i < minI {
-                minI = i;
+            if i < mini {
+                mini = i;
             }
 
-            if j < minJ {
-                minJ = j;
+            if j < minj {
+                minj = j;
             }
             // Push the operation
             r.push((i, j));
         }
 
-        (r, minI, minJ)
+        (r, mini, minj)
     }
 }
 
@@ -179,7 +179,7 @@ impl DTW for StandardDTW<'_> {
         // Do slices
         // We do it with the max MEM possible
         let mut dtw = vec![vec![0.0; chain2.size() + 1]; chain1.size() + 1];
-        let mut dtw = dtw.as_mut_slice();
+        let dtw = dtw.as_mut_slice();
 
         for i in 0..=chain1.size() {
             for j in 0..=chain2.size() {
@@ -253,7 +253,6 @@ impl DTW for UnsafeDTW<'_> {
     fn calculate(&self, chain1: Box<dyn Accesor>, chain2: Box<dyn Accesor>) -> DTWResult {
         let mut dtw = vec![vec![0.0; chain2.size() + 1]; chain1.size() + 1];
 
-        unsafe {
             for i in 0..=chain1.size() {
                 for j in 0..=chain2.size() {
                     // Unsafe should disable the bounds check
@@ -273,7 +272,7 @@ impl DTW for UnsafeDTW<'_> {
 
                             let min = cost.min(leftcost).min(rightcost);
 
-                            dtw[i][j] = cost;
+                            dtw[i][j] = min;
                         }
                     }
                 }
@@ -283,7 +282,6 @@ impl DTW for UnsafeDTW<'_> {
             let path = self.get_warp_path(&dtw, None);
 
             (cost, Some(path))
-        }
     }
 }
 
@@ -310,9 +308,7 @@ impl DTW for FixedDTW<'_> {
         let prev_row = prev_row.as_mut_slice();
 
         for i in 0..prev_row.len() {
-            unsafe {
-                prev_row[i] = self.distance.gap_cost() * i as f64;
-            }
+            prev_row[i] = self.distance.gap_cost() * i as f64;
         }
 
         // let mut progre = 0;
@@ -320,7 +316,7 @@ impl DTW for FixedDTW<'_> {
         for i in 1..=chain2.size() {
             let mut curr_row = vec![0.0; chain1.size() + 1];
             // TODO Check if the following actually helps
-            let mut curr_row = curr_row.as_mut_slice();
+            let curr_row = curr_row.as_mut_slice();
 
             curr_row[0] = self.distance.gap_cost() * i as f64;
 
@@ -328,20 +324,20 @@ impl DTW for FixedDTW<'_> {
                 let a = chain1.get(j - 1);
                 let b = chain2.get(i - 1);
 
-                let cost = self.distance.distance(a, b) + unsafe { prev_row[j - 1] };
-                let leftcost = self.distance.gap_cost() + unsafe { prev_row[j] };
+                let cost = self.distance.distance(a, b) + prev_row[j - 1];
+                let leftcost = self.distance.gap_cost() + prev_row[j];
                 let rightcost = self.distance.gap_cost() + curr_row[j - 1];
 
                 let min = cost.min(leftcost).min(rightcost);
 
-                unsafe { curr_row[j] = cost };
+                 curr_row[j] = min;
             }
 
             // Copy the memory
-            unsafe { prev_row.copy_from_slice(&curr_row) };
+             prev_row.copy_from_slice(&curr_row) ;
         }
 
-        unsafe { (prev_row[chain1.size()], None) }
+        (prev_row[chain1.size()], None)
     }
 }
 
@@ -461,15 +457,15 @@ impl DynamicWindow {
         for i in 0..self.min_values.len() {
             // log::info!("{i}{}-{}", self.min_values[i], self.max_values[i]);
             print!("{i}");
-            for j in 0..self.min_values[i].or(Some(0)).unwrap() {
+            for _ in 0..self.min_values[i].or(Some(0)).unwrap() {
                 print!(" ");
             }
-            for j in
+            for _ in
                 self.min_values[i].or(Some(0)).unwrap()..self.max_values[i].or(Some(0)).unwrap()
             {
                 print!("█");
             }
-            for j in self.max_values[i].or(Some(self.width)).unwrap()..self.width {
+            for _ in self.max_values[i].or(Some(self.width)).unwrap()..self.width {
                 print!(" ");
             }
             println!("");
@@ -494,7 +490,7 @@ impl<'a> DTW for WindowedDTW<'a> {
         // Do slices
         // We do it with the max MEM possible
         let mut dtw = vec![vec![std::f64::INFINITY; chain2.size() + 1]; chain1.size() + 1];
-        let mut dtw = dtw.as_mut_slice();
+        let dtw = dtw.as_mut_slice();
 
         for i in 0..=chain1.size() {
             let (min, max) = self.window.get_limits(i);
@@ -951,10 +947,10 @@ mod tests {
         let chain2 = Box::new(vec![1, 2, 4]);
         let (result, ops) = dtw.calculate(chain1.clone(), chain2.clone());
 
-        let dtw1 = FixedDTW::new(&distance);
+        let _ = FixedDTW::new(&distance);
         let (result2, ops2) = dtw.calculate(chain1.clone(), chain2.clone());
 
-        let dtw2 = UnsafeDTW::new(&distance);
+        let _ = UnsafeDTW::new(&distance);
         let (result3, ops3) = dtw.calculate(chain1.clone(), chain2.clone());
 
         assert_eq!(result, result2);

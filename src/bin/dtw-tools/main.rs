@@ -7,7 +7,6 @@ use clap::Parser;
 use dtw_core::parsing::TraceEncoder;
 use std::io::Write;
 use std::path::PathBuf;
-use std::borrow::Borrow;
 // This code is copied and transformed from the wasm-tools repo
 //
 //

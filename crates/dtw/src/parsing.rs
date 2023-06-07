@@ -5,9 +5,7 @@
 //!
 
 use crate::dtw::*;
-use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
 use std::collections::HashMap;
-use std::io::Read;
 use std::io::Write;
 use std::path::PathBuf;
 

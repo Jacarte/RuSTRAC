@@ -94,7 +94,7 @@ mod tests {
 
 
     #[test]
-    pub fn test_large_files() {
+    pub fn test_larger_files() {
         // Create a super large file
         let mut file = std::fs::OpenOptions::new()
             .read(true)
@@ -104,7 +104,7 @@ mod tests {
             .unwrap();
         
         println!("Writing data");
-        let size = 400000000;
+        let size = 1000000000;
         // Write up to 10Gb
         for i in 0..size{
             let b: usize = i;
