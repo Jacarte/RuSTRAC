@@ -93,7 +93,7 @@ mod tests {
 
 
 
-    //#[test]
+    #[test]
     pub fn test_large_files() {
         // Create a super large file
         let mut file = std::fs::OpenOptions::new()
