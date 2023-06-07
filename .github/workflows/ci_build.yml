@@ -62,12 +62,12 @@ jobs:
             asset_name: dtw-tools-arm-macos-${{ github.event.release.tag_name }}
             shasum_cmd: shasum -a 256
             target: aarch64-apple-darwin
-          - name: windows
-            os: windows-latest
-            path: target\x86_64-pc-windows-msvc\release\dtw-tools.exe
-            asset_name: dtw-tools-x86_64-windows-${{ github.event.release.tag_name }}
-            shasum_cmd: sha256sum
-            target: x86_64-pc-windows-msvc
+          #- name: windows
+          #  os: windows-latest
+          #  path: target\x86_64-pc-windows-msvc\release\dtw-tools.exe
+          #  asset_name: dtw-tools-x86_64-windows-${{ github.event.release.tag_name }}
+          #  shasum_cmd: sha256sum
+          #  target: x86_64-pc-windows-msvc
 
     steps:
       - uses: actions/checkout@v3
