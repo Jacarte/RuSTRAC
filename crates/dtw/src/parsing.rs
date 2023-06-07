@@ -5,7 +5,11 @@
 //!
 
 use crate::dtw::*;
+#[cfg(not(target_arch = "x86_64"))]
+use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
 use std::collections::HashMap;
+#[cfg(not(target_arch = "x86_64"))]
+use std::io::Read;
 use std::io::Write;
 use std::path::PathBuf;
 
