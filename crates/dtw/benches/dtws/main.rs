@@ -7,7 +7,7 @@ fn bench_dtws(c: &mut Criterion) {
     let mut group = c.benchmark_group("dtws");
 
     // 0 is for dtw standard
-    group.bench_function(BenchmarkId::new("dtw", 0), |b| {
+    group.bench_function(BenchmarkId::new("dtw/1000", 0), |b| {
         b.iter_custom(|iters| {
             let mut cumulative_duration = Duration::new(0, 0);
             // Create two arrays full of random elements
@@ -28,7 +28,7 @@ fn bench_dtws(c: &mut Criterion) {
         })
     });
 
-    group.bench_function(BenchmarkId::new("unsafe dtw", 0), |b| {
+    group.bench_function(BenchmarkId::new("unsafe dtw/1000", 0), |b| {
         b.iter_custom(|iters| {
             let mut cumulative_duration = Duration::new(0, 0);
             // Create two arrays full of random elements
@@ -50,7 +50,7 @@ fn bench_dtws(c: &mut Criterion) {
         })
     });
 
-    group.bench_function(BenchmarkId::new("fixed dtw", 0), |b| {
+    group.bench_function(BenchmarkId::new("fixed dtw/1000", 0), |b| {
         b.iter_custom(|iters| {
             let mut cumulative_duration = Duration::new(0, 0);
             // Create two arrays full of random elements
@@ -71,7 +71,7 @@ fn bench_dtws(c: &mut Criterion) {
         })
     });
 
-    group.bench_function(BenchmarkId::new("fastdtw", 0), |b| {
+    group.bench_function(BenchmarkId::new("fastdtw/1000", 0), |b| {
         b.iter_custom(|iters| {
             let mut cumulative_duration = Duration::new(0, 0);
             // Create two arrays full of random elements
