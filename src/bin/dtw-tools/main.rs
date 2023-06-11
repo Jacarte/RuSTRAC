@@ -85,7 +85,7 @@ fn split_by_reg(reg: &String, text: &String, cleaner: CleanerArg) -> Vec<String>
     re.split(text).for_each(|x| {
         // Now we clean x if
         match &cleaner.cleaner_regex {
-            Some(arg) => {
+            Some(_arg) => {
                 if let Some(cleanerre) = &cleanerre {
                     // Get the match
                     let m = cleanerre.find(x);
@@ -141,7 +141,7 @@ fn main() {
         name2 = &n2;
     }
 
-    let (trace1, trace2, name1, name2) = if trace2.len() > trace1.len() {
+    let (trace1, trace2, name1, name2) = if trace2.len() < trace1.len() {
         log::debug!("Swapping traces");
         (trace2, trace1, name2, name1)
     } else {
