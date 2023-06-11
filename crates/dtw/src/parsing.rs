@@ -17,12 +17,6 @@ pub trait TraceEncoder<'a> {
     /// Creates a trace bin file
     fn create_bin(&mut self, tokens: Vec<String>, to: PathBuf) -> Vec<TokenID>;
 
-    /// Filter the sequence for interesting events. It returns a trasnformed String with
-    /// uninteresting characters already removed.
-    /// This is helpful to compare machine code, where we are only interested in the instructions
-    /// and not the addresses
-    fn filter(&self, token: String) -> String;
-
     /// Maps the token to a unique id
     fn token_to_id(&mut self, token: &str) -> TokenID;
 
@@ -55,7 +49,7 @@ impl<'a> TraceEncoder<'a> for ToMemoryParser {
         let mut r = vec![];
 
         for t in tokens {
-            r.push(self.token_to_id(&self.filter(t)))
+            r.push(self.token_to_id(&t))
         }
 
         // Write the trace file
@@ -79,12 +73,6 @@ impl<'a> TraceEncoder<'a> for ToMemoryParser {
         }
 
         r
-    }
-
-    fn filter(&self, token: String) -> String {
-        // All allowed for now
-        // TODO implement a regular expression filter here
-        token.clone()
     }
 
     fn token_to_id(&mut self, token: &str) -> TokenID {

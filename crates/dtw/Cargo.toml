@@ -11,6 +11,7 @@ authors = ["Jacarte <jacarte9212@gmail.com>"]
 [dependencies]
 byteorder = "1.4.3"
 log = { workspace = true }
+regex = {  workspace = true }
 
 [dev-dependencies]
 criterion = "0.4.0"

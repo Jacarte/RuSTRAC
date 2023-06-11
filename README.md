@@ -22,8 +22,8 @@ Reimplementation of STRAC in Rust.
 - [x] CLI tool
 - [x] Generic discrete cost function
 - [ ] Wavefront implementation for SIMD
-- [ ] Generic tokens separator
-- [ ] Generic token filter
+- [x] Generic tokens separator
+- [x] Generic token filter
 - [x] FastDTW
 - [x] Export alignment
 - [x] Writing the trace in a custom bin file for faster reading.

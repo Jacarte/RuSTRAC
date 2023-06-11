@@ -2,9 +2,11 @@ extern crate anyhow;
 extern crate clap;
 extern crate dtw as dtw_core;
 extern crate termcolor;
+extern crate dtw_tools;
 
 use clap::Parser;
 use dtw_core::parsing::TraceEncoder;
+use dtw_tools::CleanerArg;
 use std::io::Write;
 use std::path::PathBuf;
 // This code is copied and transformed from the wasm-tools repo
@@ -69,6 +71,43 @@ subcommands! {
     (fastdtw, "fastdtw")
 }
 
+fn split_by_reg(reg: &String, text: &String, cleaner: CleanerArg) -> Vec<String> {
+    let re = regex::Regex::new(reg).unwrap();
+    let mut vec = vec![];
+    // Split the text by the regex
+    let cleanerre = match &cleaner.cleaner_regex {
+        Some(arg) => {
+            let re = regex::Regex::new(arg).unwrap();
+            Some(re)
+        },
+        None => None
+    };
+    re.split(text).for_each(|x| {
+        // Now we clean x if
+        match &cleaner.cleaner_regex {
+            Some(arg) => {
+                if let Some(cleanerre) = &cleanerre {
+                    // Get the match
+                    let m = cleanerre.find(x);
+                    // Get the group of the arg.cleaner_extract
+                    match m {
+                        Some(_) => {
+                            let g = cleanerre.captures(x).unwrap()
+                            .get(cleaner.cleaner_extract.or(Some(0)).unwrap()).unwrap().as_str();
+                            vec.push(g.to_string());
+                        },
+                        None => vec.push(x.to_string())
+                    }
+                }
+                
+            },
+            None => vec.push(x.to_string())
+        }
+        
+    });
+    vec
+}
+
 fn main() {
     let args = <DTWTools as Parser>::parse();
     args.general_opts().init_logger();
@@ -83,15 +122,10 @@ fn main() {
 
     // Separate the tokens by endline
     // TODO replace with a custom separator
-    log::debug!("Separating by '{}'", args.io().separator);
-    let trace1 = trace1
-        .split(&args.io().separator)
-        .map(String::from)
-        .collect::<Vec<_>>();
-    let trace2 = trace2
-        .split(&args.io().separator)
-        .map(String::from)
-        .collect::<Vec<_>>();
+    log::debug!("Separating by {:?}", args.io().separator);
+    let trace1 = split_by_reg(&args.io().separator, &trace1, args.io().cleaner.clone());
+    let trace2 = split_by_reg(&args.io().separator, &trace2, args.io().cleaner.clone());
+
 
     // Swap if they are larger
     log::debug!("Generating bin traces");
@@ -99,8 +133,16 @@ fn main() {
     // Get the name of the file
     let argsclone = args.clone();
     let name1 = argsclone.io().input1.file_name().unwrap().to_str().unwrap();
-    let name2 = argsclone.io().input2.file_name().unwrap().to_str().unwrap();
+    let mut name2 = argsclone.io().input2.file_name().unwrap().to_str().unwrap();
+    let n2 = format!("{}_2", name2);
+
+    if name1 == name2 {
+        log::debug!("Renaming traces");
+        name2 = &n2;
+    }
+
     let (trace1, trace2, name1, name2) = if trace2.len() > trace1.len() {
+        log::debug!("Swapping traces");
         (trace2, trace1, name2, name1)
     } else {
         (trace1, trace2, name1, name2)

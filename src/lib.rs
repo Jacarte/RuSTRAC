@@ -61,9 +61,30 @@ pub struct InputOutput {
     #[arg(long)]
     pub missmatch_cost: Option<f64>,
 
-    /// Token separator
+    /// Separator as a regular expression
     #[arg(long, default_value = "\n")]
     pub separator: String,
+
+    /// Cleaner of the traces. After spliting the document with the regex separator, the tokens will be cleaned out. This will be helpful for removing jumps and other noise.
+    // set thos optional
+    #[clap(flatten)]
+    pub cleaner: CleanerArg,
+
+    /// If the output alignemtn flag is set, then the cleaned trace is outputted
+    #[arg(long, default_value="false")]
+    pub output_cleaned_trace: bool
+}
+
+
+#[derive(clap::Parser, Clone)]
+pub struct CleanerArg {
+    /// Cleaner regex
+    #[arg(long)]
+    pub cleaner_regex: Option<String>,
+
+    /// Extracted groupd
+    #[arg(long, default_value = "0")]
+    pub cleaner_extract: Option<usize>,
 }
 
 #[derive(clap::Parser, Clone)]
